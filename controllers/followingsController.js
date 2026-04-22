@@ -1,3 +1,4 @@
+const Joi = require("joi");
 const db = require("../config/db");
 const {
   getFollowings,
