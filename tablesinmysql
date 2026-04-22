@@ -1,0 +1,2952 @@
+ads_campaigns	campaign_id	int	NO		auto_increment
+ads_campaigns	campaign_user_id	int unsigned	NO		
+ads_campaigns	campaign_title	varchar(256)	NO		
+ads_campaigns	campaign_start_date	datetime	NO		
+ads_campaigns	campaign_end_date	datetime	NO		
+ads_campaigns	campaign_budget	double	NO		
+ads_campaigns	campaign_spend	double	NO	0	
+ads_campaigns	campaign_bidding	enum('click','view')	NO		
+ads_campaigns	audience_countries	mediumtext	NO		
+ads_campaigns	audience_gender	varchar(32)	NO		
+ads_campaigns	audience_relationship	varchar(64)	NO		
+ads_campaigns	ads_title	varchar(255)	YES		
+ads_campaigns	ads_description	mediumtext	YES		
+ads_campaigns	ads_type	varchar(32)	NO		
+ads_campaigns	ads_url	varchar(256)	YES		
+ads_campaigns	ads_page	int unsigned	YES		
+ads_campaigns	ads_group	int unsigned	YES		
+ads_campaigns	ads_event	int unsigned	YES		
+ads_campaigns	ads_placement	enum('newsfeed','sidebar')	NO		
+ads_campaigns	ads_image	varchar(256)	NO		
+ads_campaigns	campaign_created_date	datetime	NO		
+ads_campaigns	campaign_is_active	enum('0','1')	NO	1	
+ads_campaigns	campaign_is_approved	enum('0','1')	NO	0	
+ads_campaigns	campaign_is_declined	enum('0','1')	NO	0	
+ads_campaigns	campaign_views	int unsigned	NO	0	
+ads_campaigns	campaign_clicks	int unsigned	NO	0	
+ads_system	ads_id	int	NO		auto_increment
+ads_system	title	varchar(256)	NO		
+ads_system	place	varchar(32)	NO		
+ads_system	ads_pages_ids	text	YES		
+ads_system	ads_groups_ids	text	YES		
+ads_system	code	mediumtext	NO		
+ads_system	time	datetime	NO		
+affiliates_payments	payment_id	int	NO		auto_increment
+affiliates_payments	user_id	int unsigned	NO		
+affiliates_payments	amount	varchar(32)	NO		
+affiliates_payments	method	varchar(64)	NO		
+affiliates_payments	method_value	text	NO		
+affiliates_payments	time	datetime	NO		
+affiliates_payments	status	tinyint(1)	NO		
+announcements	announcement_id	int	NO		auto_increment
+announcements	name	varchar(256)	NO		
+announcements	title	varchar(256)	NO		
+announcements	type	varchar(32)	NO		
+announcements	code	mediumtext	NO		
+announcements	start_date	datetime	NO		
+announcements	end_date	datetime	NO		
+announcements_users	id	int unsigned	NO		auto_increment
+announcements_users	announcement_id	int unsigned	NO		
+announcements_users	user_id	int unsigned	NO		
+auto_connect	id	int unsigned	NO		auto_increment
+auto_connect	type	varchar(32)	NO		
+auto_connect	country_id	int unsigned	NO		
+auto_connect	nodes_ids	text	NO		
+bank_transfers	transfer_id	int unsigned	NO		auto_increment
+bank_transfers	user_id	int unsigned	NO		
+bank_transfers	handle	varchar(32)	NO		
+bank_transfers	package_id	int unsigned	YES		
+bank_transfers	post_id	int unsigned	YES		
+bank_transfers	plan_id	int unsigned	YES		
+bank_transfers	movie_id	int unsigned	YES		
+bank_transfers	price	float	YES		
+bank_transfers	bank_receipt	varchar(256)	NO		
+bank_transfers	time	datetime	NO		
+bank_transfers	status	tinyint(1)	NO	0	
+blacklist	node_id	int unsigned	NO		auto_increment
+blacklist	node_type	enum('ip','email','username')	NO		
+blacklist	node_value	varchar(64)	NO		
+blacklist	created_time	datetime	NO		
+blogs_categories	category_id	int unsigned	NO		auto_increment
+blogs_categories	category_parent_id	int unsigned	NO		
+blogs_categories	category_name	varchar(256)	NO		
+blogs_categories	category_description	text	NO		
+blogs_categories	category_order	int unsigned	NO	1	
+coinpayments_transactions	transaction_id	int unsigned	NO		auto_increment
+coinpayments_transactions	transaction_txn_id	text	YES		
+coinpayments_transactions	user_id	int unsigned	NO		
+coinpayments_transactions	amount	varchar(32)	NO		
+coinpayments_transactions	product	text	NO		
+coinpayments_transactions	created_at	datetime	NO		
+coinpayments_transactions	last_update	datetime	NO		
+coinpayments_transactions	status	tinyint unsigned	NO		
+coinpayments_transactions	status_message	text	YES		
+conversations	conversation_id	int unsigned	NO		auto_increment
+conversations	last_message_id	int unsigned	NO		
+conversations	color	varchar(32)	YES		
+conversations	node_id	int unsigned	YES		
+conversations	node_type	varchar(128)	YES		
+conversations_calls_audio	call_id	int unsigned	NO		auto_increment
+conversations_calls_audio	from_user_id	int unsigned	NO		
+conversations_calls_audio	from_user_token	mediumtext	YES		
+conversations_calls_audio	to_user_id	int unsigned	NO		
+conversations_calls_audio	to_user_token	mediumtext	YES		
+conversations_calls_audio	room	varchar(64)	NO		
+conversations_calls_audio	channel_name	varchar(255)	NO		
+conversations_calls_audio	provider	enum('twilio','agora')	NO	twilio	
+conversations_calls_audio	answered	enum('0','1')	NO	0	
+conversations_calls_audio	declined	enum('0','1')	NO	0	
+conversations_calls_audio	created_time	datetime	NO	CURRENT_TIMESTAMP	DEFAULT_GENERATED
+conversations_calls_audio	updated_time	datetime	NO	CURRENT_TIMESTAMP	DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+conversations_calls_video	call_id	int unsigned	NO		auto_increment
+conversations_calls_video	from_user_id	int unsigned	NO		
+conversations_calls_video	from_user_token	text	YES		
+conversations_calls_video	to_user_id	int unsigned	NO		
+conversations_calls_video	to_user_token	text	YES		
+conversations_calls_video	room	varchar(64)	NO		
+conversations_calls_video	channel_name	varchar(255)	NO		
+conversations_calls_video	provider	enum('twilio','agora')	NO	twilio	
+conversations_calls_video	answered	enum('0','1')	NO	0	
+conversations_calls_video	declined	enum('0','1')	NO	0	
+conversations_calls_video	created_time	datetime	NO		
+conversations_calls_video	updated_time	datetime	NO	CURRENT_TIMESTAMP	DEFAULT_GENERATED
+conversations_messages	message_id	int unsigned	NO		auto_increment
+conversations_messages	conversation_id	int unsigned	NO		
+conversations_messages	user_id	int unsigned	NO		
+conversations_messages	message	longtext	NO		
+conversations_messages	image	varchar(255)	YES		
+conversations_messages	voice_note	varchar(255)	YES		
+conversations_messages	time	datetime	NO		
+conversations_users	id	int unsigned	NO		auto_increment
+conversations_users	conversation_id	int unsigned	NO		
+conversations_users	user_id	int unsigned	NO		
+conversations_users	seen	enum('0','1')	NO	0	
+conversations_users	typing	enum('0','1')	NO	0	
+conversations_users	deleted	enum('0','1')	NO	0	
+conversations_users	last_seen_time	datetime	YES		
+custom_fields	field_id	int unsigned	NO		auto_increment
+custom_fields	field_for	varchar(64)	NO		
+custom_fields	type	varchar(32)	NO		
+custom_fields	select_options	mediumtext	NO		
+custom_fields	label	varchar(256)	NO		
+custom_fields	description	mediumtext	NO		
+custom_fields	place	varchar(32)	NO		
+custom_fields	length	int	NO	32	
+custom_fields	field_order	int	NO	1	
+custom_fields	is_link	enum('0','1')	NO	0	
+custom_fields	mandatory	enum('0','1')	NO	0	
+custom_fields	in_registration	enum('0','1')	NO	0	
+custom_fields	in_profile	enum('0','1')	NO	0	
+custom_fields	in_search	enum('0','1')	NO	0	
+custom_fields_values	value_id	int unsigned	NO		auto_increment
+custom_fields_values	value	mediumtext	NO		
+custom_fields_values	field_id	int unsigned	NO		
+custom_fields_values	node_id	int unsigned	NO		
+custom_fields_values	node_type	varchar(64)	NO		
+developers_apps	app_id	int unsigned	NO		auto_increment
+developers_apps	app_user_id	int unsigned	NO		
+developers_apps	app_category_id	int unsigned	NO		
+developers_apps	app_auth_id	varchar(128)	NO		
+developers_apps	app_auth_secret	varchar(128)	NO		
+developers_apps	app_name	varchar(256)	NO		
+developers_apps	app_domain	varchar(256)	NO		
+developers_apps	app_redirect_url	varchar(256)	NO		
+developers_apps	app_description	mediumtext	NO		
+developers_apps	app_icon	varchar(256)	NO		
+developers_apps	app_date	datetime	NO		
+developers_apps_categories	category_id	int unsigned	NO		auto_increment
+developers_apps_categories	category_parent_id	int unsigned	NO		
+developers_apps_categories	category_name	varchar(256)	NO		
+developers_apps_categories	category_description	text	NO		
+developers_apps_categories	category_order	int unsigned	NO	1	
+developers_apps_users	id	int unsigned	NO		auto_increment
+developers_apps_users	app_id	int unsigned	NO		
+developers_apps_users	user_id	int unsigned	NO		
+developers_apps_users	auth_key	varchar(128)	NO		
+developers_apps_users	access_token	varchar(128)	YES		
+developers_apps_users	access_token_date	datetime	YES		
+emojis	emoji_id	int unsigned	NO		auto_increment
+emojis	unicode_char	varchar(256)	NO		
+emojis	class	varchar(256)	NO		
+events	event_id	int unsigned	NO		auto_increment
+events	event_privacy	enum('secret','closed','public')	YES	public	
+events	event_admin	int unsigned	NO		
+events	event_page_id	int unsigned	YES		
+events	event_category	int unsigned	NO		
+events	event_title	varchar(256)	NO		
+events	event_location	varchar(256)	YES		
+events	event_description	mediumtext	NO		
+events	event_start_date	datetime	NO		
+events	event_end_date	datetime	NO		
+events	event_publish_enabled	enum('0','1')	NO	1	
+events	event_publish_approval_enabled	enum('0','1')	NO	0	
+events	event_cover	varchar(256)	YES		
+events	event_cover_id	int unsigned	YES		
+events	event_cover_position	varchar(256)	YES		
+events	event_album_covers	int	YES		
+events	event_album_timeline	int	YES		
+events	event_pinned_post	int	YES		
+events	event_invited	int unsigned	NO	0	
+events	event_interested	int unsigned	NO	0	
+events	event_going	int unsigned	NO	0	
+events	chatbox_enabled	enum('0','1')	NO	0	
+events	chatbox_conversation_id	int unsigned	YES		
+events	event_tickets_link	varchar(256)	YES		
+events	event_prices	text	YES		
+events	event_rate	float	NO	0	
+events	event_date	datetime	NO		
+events_categories	category_id	int unsigned	NO		auto_increment
+events_categories	category_parent_id	int unsigned	NO		
+events_categories	category_name	varchar(256)	NO		
+events_categories	category_description	text	NO		
+events_categories	category_order	int unsigned	NO	1	
+events_members	id	int unsigned	NO		auto_increment
+events_members	event_id	int unsigned	NO		
+events_members	user_id	int unsigned	NO		
+events_members	is_invited	enum('0','1')	YES	0	
+events_members	is_interested	enum('0','1')	YES	0	
+events_members	is_going	enum('0','1')	YES	0	
+followings	id	int unsigned	NO		auto_increment
+followings	user_id	int unsigned	NO		
+followings	following_id	int unsigned	NO		
+followings	points_earned	enum('0','1')	NO	0	
+followings	time	datetime	YES		
+forums	forum_id	int unsigned	NO		auto_increment
+forums	forum_section	int unsigned	NO		
+forums	forum_name	varchar(256)	NO		
+forums	forum_description	mediumtext	YES		
+forums	forum_order	int unsigned	NO	1	
+forums	forum_threads	int unsigned	NO	0	
+forums	forum_replies	int unsigned	NO	0	
+forums_replies	reply_id	int unsigned	NO		auto_increment
+forums_replies	thread_id	int unsigned	NO		
+forums_replies	user_id	int unsigned	NO		
+forums_replies	text	longtext	NO		
+forums_replies	time	datetime	NO		
+forums_threads	thread_id	int unsigned	NO		auto_increment
+forums_threads	forum_id	int unsigned	NO		
+forums_threads	user_id	int unsigned	NO		
+forums_threads	title	varchar(256)	NO		
+forums_threads	text	longtext	NO		
+forums_threads	replies	int unsigned	NO	0	
+forums_threads	views	int unsigned	NO	0	
+forums_threads	time	datetime	NO		
+forums_threads	last_reply	datetime	YES		
+friends	id	int unsigned	NO		auto_increment
+friends	user_one_id	int unsigned	NO		
+friends	user_two_id	int unsigned	NO		
+friends	status	tinyint(1)	NO		
+funding_payments	payment_id	int	NO		auto_increment
+funding_payments	user_id	int unsigned	NO		
+funding_payments	amount	varchar(32)	NO		
+funding_payments	method	varchar(64)	NO		
+funding_payments	method_value	text	NO		
+funding_payments	time	datetime	NO		
+funding_payments	status	tinyint(1)	NO		
+games	game_id	int	NO		auto_increment
+games	title	varchar(256)	NO		
+games	description	mediumtext	NO		
+games	genres	mediumtext	YES		
+games	source	mediumtext	NO		
+games	thumbnail	varchar(256)	NO		
+games_genres	genre_id	int unsigned	NO		auto_increment
+games_genres	genre_name	varchar(256)	NO		
+games_genres	genre_description	text	NO		
+games_genres	genre_order	int unsigned	NO	1	
+games_players	id	int unsigned	NO		auto_increment
+games_players	game_id	int unsigned	NO		
+games_players	user_id	int unsigned	NO		
+games_players	last_played_time	datetime	YES		
+gifts	gift_id	int unsigned	NO		auto_increment
+gifts	image	varchar(256)	NO		
+group_storage_data	id	int unsigned	NO		auto_increment
+group_storage_data	group_id	int unsigned	NO		
+group_storage_data	picture_storage_type	enum('google-cloud','cloudinary','local')	YES		
+group_storage_data	picture_storage_data	text	YES		
+group_storage_data	cover_storage_type	enum('google-cloud','cloudinary','local')	YES		
+group_storage_data	cover_storage_data	text	YES		
+group_storage_data	created_at	datetime	YES	CURRENT_TIMESTAMP	DEFAULT_GENERATED
+group_storage_data	updated_at	datetime	YES	CURRENT_TIMESTAMP	DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+groups	group_id	int unsigned	NO		auto_increment
+groups	group_privacy	enum('secret','closed','public')	YES	public	
+groups	group_admin	int unsigned	NO		
+groups	group_category	int unsigned	NO		
+groups	group_name	varchar(64)	NO		
+groups	group_title	varchar(256)	NO		
+groups	group_description	mediumtext	NO		
+groups	group_publish_enabled	enum('0','1')	NO	1	
+groups	group_publish_approval_enabled	enum('0','1')	NO	0	
+groups	group_picture	varchar(256)	YES		
+groups	group_picture_id	varchar(255)	YES		
+groups	group_cover	varchar(256)	YES		
+groups	group_cover_id	varchar(255)	YES		
+groups	group_cover_position	varchar(256)	YES		
+groups	group_album_pictures	int	YES		
+groups	group_album_covers	int	YES		
+groups	group_album_timeline	int	YES		
+groups	group_pinned_post	int	YES		
+groups	group_members	int unsigned	NO	0	
+groups	group_monetization_enabled	enum('0','1')	NO	0	
+groups	group_monetization_min_price	float	NO	0	
+groups	group_monetization_plans	int unsigned	NO	0	
+groups	chatbox_enabled	enum('0','1')	NO	0	
+groups	chatbox_conversation_id	int unsigned	YES		
+groups	group_rate	float	NO	0	
+groups	group_date	datetime	NO		
+groups_admins	id	int unsigned	NO		auto_increment
+groups_admins	group_id	int unsigned	NO		
+groups_admins	user_id	int unsigned	NO		
+groups_categories	category_id	int unsigned	NO		auto_increment
+groups_categories	category_parent_id	int unsigned	NO		
+groups_categories	category_name	varchar(256)	NO		
+groups_categories	category_description	text	NO		
+groups_categories	category_order	int unsigned	NO	1	
+groups_members	id	int unsigned	NO		auto_increment
+groups_members	group_id	int unsigned	NO		
+groups_members	user_id	int unsigned	NO		
+groups_members	approved	enum('0','1')	NO	0	
+groups_members	requested_at	timestamp	YES	CURRENT_TIMESTAMP	DEFAULT_GENERATED
+groups_members	updated_at	timestamp	YES	CURRENT_TIMESTAMP	DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+hashtags	hashtag_id	int unsigned	NO		auto_increment
+hashtags	hashtag	varchar(256)	NO		
+hashtags_posts	id	int unsigned	NO		auto_increment
+hashtags_posts	post_id	int unsigned	NO		
+hashtags_posts	hashtag_id	int unsigned	NO		
+hashtags_posts	created_at	datetime	YES		
+invitation_codes	code_id	int unsigned	NO		auto_increment
+invitation_codes	code	varchar(64)	NO		
+invitation_codes	created_by	int unsigned	NO		
+invitation_codes	created_date	datetime	NO		
+invitation_codes	used_by	int unsigned	YES		
+invitation_codes	used_date	datetime	YES		
+invitation_codes	used	enum('0','1')	NO	0	
+jobs_categories	category_id	int unsigned	NO		auto_increment
+jobs_categories	category_parent_id	int unsigned	NO		
+jobs_categories	category_name	varchar(256)	NO		
+jobs_categories	category_description	text	NO		
+jobs_categories	category_order	int unsigned	NO	1	
+log_commissions	payment_id	int	NO		auto_increment
+log_commissions	user_id	int unsigned	NO		
+log_commissions	amount	float	NO		
+log_commissions	handle	varchar(128)	NO		
+log_commissions	time	datetime	NO		
+log_payments	payment_id	int	NO		auto_increment
+log_payments	user_id	int unsigned	NO		
+log_payments	amount	float	NO		
+log_payments	method	varchar(64)	NO		
+log_payments	handle	varchar(128)	NO		
+log_payments	time	datetime	NO		
+log_sessions	session_id	int unsigned	NO		auto_increment
+log_sessions	session_date	datetime	NO		
+log_sessions	session_type	enum('W','A','I')	NO	W	
+log_sessions	session_ip	varchar(64)	NO		
+log_sessions	session_user_agent	varchar(256)	YES		
+log_sessions	user_browser	varchar(64)	YES		
+log_sessions	user_os	varchar(64)	YES		
+market_categories	category_id	int unsigned	NO		auto_increment
+market_categories	category_parent_id	int unsigned	NO		
+market_categories	category_name	varchar(256)	NO		
+market_categories	category_description	text	NO		
+market_categories	category_order	int unsigned	NO	1	
+market_payments	payment_id	int	NO		auto_increment
+market_payments	user_id	int unsigned	NO		
+market_payments	amount	varchar(32)	NO		
+market_payments	method	varchar(64)	NO		
+market_payments	method_value	text	NO		
+market_payments	time	datetime	NO		
+market_payments	status	tinyint(1)	NO		
+monetization_payments	payment_id	int	NO		auto_increment
+monetization_payments	user_id	int unsigned	NO		
+monetization_payments	amount	varchar(32)	NO		
+monetization_payments	method	varchar(64)	NO		
+monetization_payments	method_value	text	NO		
+monetization_payments	time	datetime	NO		
+monetization_payments	status	tinyint(1)	NO		
+monetization_plans	plan_id	int	NO		auto_increment
+monetization_plans	node_id	int unsigned	NO		
+monetization_plans	node_type	varchar(32)	NO		
+monetization_plans	title	varchar(256)	NO		
+monetization_plans	price	float	NO		
+monetization_plans	period_num	int unsigned	NO		
+monetization_plans	period	varchar(32)	NO		
+monetization_plans	custom_description	text	YES		
+monetization_plans	plan_order	int unsigned	NO	1	
+monetization_plans	paypal_billing_plan	varchar(256)	YES		
+monetization_plans	stripe_billing_plan	varchar(256)	YES		
+movies	movie_id	int unsigned	NO		auto_increment
+movies	source	text	NO		
+movies	source_type	varchar(64)	NO		
+movies	title	varchar(256)	NO		
+movies	description	text	YES		
+movies	imdb_url	text	YES		
+movies	stars	text	YES		
+movies	release_year	int	YES		
+movies	duration	int	YES		
+movies	genres	mediumtext	YES		
+movies	poster	varchar(256)	YES		
+movies	views	int unsigned	NO	0	
+movies	is_paid	enum('0','1')	NO	0	
+movies	price	float	NO	0	
+movies	available_for	int	NO	0	
+movies_genres	genre_id	int unsigned	NO		auto_increment
+movies_genres	genre_name	varchar(256)	NO		
+movies_genres	genre_description	text	NO		
+movies_genres	genre_order	int unsigned	NO	1	
+movies_payments	id	int unsigned	NO		auto_increment
+movies_payments	movie_id	int unsigned	NO		
+movies_payments	user_id	int unsigned	NO		
+movies_payments	payment_time	datetime	NO		
+notifications	notification_id	int unsigned	NO		auto_increment
+notifications	to_user_id	int unsigned	NO		
+notifications	from_user_id	int unsigned	NO		
+notifications	from_user_type	enum('user','page')	NO	user	
+notifications	action	varchar(256)	NO		
+notifications	node_type	varchar(256)	NO		
+notifications	node_url	varchar(256)	NO		
+notifications	notify_id	varchar(256)	YES		
+notifications	message	mediumtext	YES		
+notifications	time	datetime	YES		
+notifications	seen	enum('0','1')	NO	0	
+offers_categories	category_id	int unsigned	NO		auto_increment
+offers_categories	category_parent_id	int unsigned	NO		
+offers_categories	category_name	varchar(256)	NO		
+offers_categories	category_description	text	NO		
+offers_categories	category_order	int unsigned	NO	1	
+orders	order_id	int unsigned	NO		auto_increment
+orders	order_hash	varchar(128)	NO		
+orders	is_digital	enum('0','1')	NO	0	
+orders	seller_id	int unsigned	NO		
+orders	buyer_id	int unsigned	NO		
+orders	buyer_address_id	int unsigned	NO		
+orders	sub_total	float unsigned	NO	0	
+orders	commission	float unsigned	NO		
+orders	status	enum('placed','canceled','accepted','packed','shipped','delivered')	NO	placed	
+orders	tracking_link	text	YES		
+orders	tracking_number	text	YES		
+orders	insert_time	datetime	NO		
+orders	update_time	datetime	NO		
+orders_items	id	int	NO		auto_increment
+orders_items	order_id	int unsigned	NO		
+orders_items	product_post_id	int unsigned	NO		
+orders_items	quantity	int unsigned	NO		
+orders_items	price	float unsigned	NO		
+packages	package_id	int	NO		auto_increment
+packages	name	varchar(256)	NO		
+packages	price	varchar(32)	NO		
+packages	period_num	int unsigned	NO		
+packages	period	varchar(32)	NO		
+packages	color	varchar(32)	NO		
+packages	icon	varchar(256)	NO		
+packages	package_permissions_group_id	int unsigned	NO	0	
+packages	allowed_blogs_categories	int	NO	0	
+packages	allowed_videos_categories	int	NO	0	
+packages	allowed_products	int	NO	0	
+packages	verification_badge_enabled	enum('0','1')	NO	0	
+packages	boost_posts_enabled	enum('0','1')	NO	0	
+packages	boost_posts	int unsigned	NO		
+packages	boost_pages_enabled	enum('0','1')	NO	0	
+packages	boost_pages	int unsigned	NO		
+packages	custom_description	text	YES		
+packages	package_order	int unsigned	NO	1	
+packages	paypal_billing_plan	varchar(256)	YES		
+packages	stripe_billing_plan	varchar(256)	YES		
+packages_payments	payment_id	int	NO		auto_increment
+packages_payments	payment_date	datetime	NO		
+packages_payments	package_name	varchar(256)	NO		
+packages_payments	package_price	float unsigned	NO		
+packages_payments	user_id	int unsigned	NO		
+pages	page_id	int unsigned	NO		auto_increment
+pages	page_admin	int unsigned	NO		
+pages	page_category	int unsigned	NO		
+pages	page_name	varchar(64)	NO		
+pages	page_title	varchar(256)	NO		
+pages	page_picture	varchar(256)	YES		
+pages	page_picture_id	int unsigned	YES		
+pages	page_cover	varchar(256)	YES		
+pages	page_cover_id	int unsigned	YES		
+pages	page_cover_position	varchar(256)	YES		
+pages	page_album_pictures	int unsigned	YES		
+pages	page_album_covers	int unsigned	YES		
+pages	page_album_timeline	int unsigned	YES		
+pages	page_pinned_post	int unsigned	YES		
+pages	page_verified	enum('0','1')	NO	0	
+pages	page_tips_enabled	enum('0','1')	NO	0	
+pages	page_boosted	enum('0','1')	NO	0	
+pages	page_boosted_by	int unsigned	YES		
+pages	page_company	varchar(256)	YES		
+pages	page_phone	varchar(256)	YES		
+pages	page_website	varchar(256)	YES		
+pages	page_location	varchar(256)	YES		
+pages	page_country	int unsigned	NO		
+pages	page_description	mediumtext	NO		
+pages	page_action_text	varchar(32)	YES		
+pages	page_action_color	varchar(32)	YES		
+pages	page_action_url	varchar(256)	YES		
+pages	page_social_facebook	varchar(256)	YES		
+pages	page_social_twitter	varchar(256)	YES		
+pages	page_social_youtube	varchar(256)	YES		
+pages	page_social_instagram	varchar(256)	YES		
+pages	page_social_linkedin	varchar(256)	YES		
+pages	page_social_vkontakte	varchar(256)	YES		
+pages	page_likes	int unsigned	NO	0	
+pages	page_monetization_enabled	enum('0','1')	NO	0	
+pages	page_monetization_min_price	float	NO	0	
+pages	page_monetization_plans	int unsigned	NO	0	
+pages	page_rate	float	NO	0	
+pages	page_date	datetime	NO		
+pages_admins	id	int unsigned	NO		auto_increment
+pages_admins	page_id	int unsigned	NO		
+pages_admins	user_id	int unsigned	NO		
+pages_categories	category_id	int unsigned	NO		auto_increment
+pages_categories	category_parent_id	int unsigned	NO		
+pages_categories	category_name	varchar(256)	NO		
+pages_categories	category_description	text	NO		
+pages_categories	category_order	int unsigned	NO	1	
+pages_invites	id	int unsigned	NO		auto_increment
+pages_invites	page_id	int unsigned	NO		
+pages_invites	user_id	int unsigned	NO		
+pages_invites	from_user_id	int unsigned	NO		
+pages_likes	id	int unsigned	NO		auto_increment
+pages_likes	page_id	int unsigned	NO		
+pages_likes	user_id	int unsigned	NO		
+permissions_groups	permissions_group_id	int unsigned	NO		auto_increment
+permissions_groups	permissions_group_title	varchar(255)	NO		
+permissions_groups	pages_permission	enum('0','1')	NO	0	
+permissions_groups	groups_permission	enum('0','1')	NO	0	
+permissions_groups	events_permission	enum('0','1')	NO	0	
+permissions_groups	posts_permission	enum('0','1')	NO	0	
+permissions_groups	blogs_permission	enum('0','1')	NO	0	
+permissions_groups	market_permission	enum('0','1')	NO	0	
+permissions_groups	offers_permission	enum('0','1')	NO	0	
+permissions_groups	jobs_permission	enum('0','1')	NO	0	
+permissions_groups	forums_permission	enum('0','1')	NO	0	
+permissions_groups	movies_permission	enum('0','1')	NO	0	
+permissions_groups	games_permission	enum('0','1')	NO	0	
+permissions_groups	gifts_permission	enum('0','1')	NO	0	
+permissions_groups	blogs_permission_read	enum('0','1')	NO	0	
+permissions_groups	videos_permission_read	enum('0','1')	NO	0	
+permissions_groups	stories_permission	enum('0','1')	NO	0	
+permissions_groups	colored_posts_permission	enum('0','1')	NO	0	
+permissions_groups	activity_posts_permission	enum('0','1')	NO	0	
+permissions_groups	polls_posts_permission	enum('0','1')	NO	0	
+permissions_groups	geolocation_posts_permission	enum('0','1')	NO	0	
+permissions_groups	gif_posts_permission	enum('0','1')	NO	0	
+permissions_groups	anonymous_posts_permission	enum('0','1')	NO	0	
+permissions_groups	invitation_permission	enum('0','1')	NO	0	
+permissions_groups	audio_call_permission	enum('0','1')	NO	0	
+permissions_groups	video_call_permission	enum('0','1')	NO	0	
+permissions_groups	live_permission	enum('0','1')	NO	0	
+permissions_groups	videos_upload_permission	enum('0','1')	NO	0	
+permissions_groups	audios_upload_permission	enum('0','1')	NO	0	
+permissions_groups	files_upload_permission	enum('0','1')	NO	0	
+permissions_groups	ads_permission	enum('0','1')	NO	0	
+permissions_groups	fundings_permission	enum('0','1')	NO	0	
+permissions_groups	monetization_permission	enum('0','1')	NO	0	
+permissions_groups	tips_permission	enum('0','1')	NO	0	
+points_payments	payment_id	int	NO		auto_increment
+points_payments	user_id	int unsigned	NO		
+points_payments	amount	varchar(32)	NO		
+points_payments	method	varchar(64)	NO		
+points_payments	method_value	text	NO		
+points_payments	time	datetime	NO		
+points_payments	status	tinyint(1)	NO		
+posts	post_id	int unsigned	NO		auto_increment
+posts	user_id	int unsigned	NO		
+posts	user_type	enum('user','page')	NO		
+posts	in_group	enum('0','1')	NO	0	
+posts	group_id	int unsigned	YES		
+posts	group_approved	enum('0','1')	NO	1	
+posts	in_event	enum('0','1')	NO	0	
+posts	event_id	int unsigned	YES		
+posts	event_approved	enum('0','1')	NO	1	
+posts	in_wall	enum('0','1')	NO	0	
+posts	wall_id	int unsigned	YES		
+posts	post_type	varchar(32)	NO		
+posts	colored_pattern	int unsigned	YES		
+posts	origin_id	int unsigned	YES		
+posts	time	datetime	NO		
+posts	location	varchar(256)	YES		
+posts	privacy	varchar(32)	NO		
+posts	text	longtext	YES		
+posts	feeling_action	varchar(32)	YES		
+posts	feeling_value	varchar(256)	YES		
+posts	boosted	enum('0','1')	NO	0	
+posts	boosted_by	int unsigned	YES		
+posts	comments_disabled	enum('0','1')	NO	0	
+posts	is_hidden	enum('0','1')	NO	0	
+posts	for_adult	enum('0','1')	NO	0	
+posts	is_anonymous	enum('0','1')	NO	0	
+posts	reaction_like_count	int unsigned	NO	0	
+posts	reaction_love_count	int unsigned	NO	0	
+posts	reaction_haha_count	int unsigned	NO	0	
+posts	reaction_yay_count	int unsigned	NO	0	
+posts	reaction_wow_count	int unsigned	NO	0	
+posts	reaction_sad_count	int unsigned	NO	0	
+posts	reaction_angry_count	int unsigned	NO	0	
+posts	comments	int unsigned	NO	0	
+posts	shares	int unsigned	NO	0	
+posts	views	int unsigned	NO	0	
+posts	post_rate	float	NO	0	
+posts	points_earned	enum('0','1')	NO	0	
+posts	tips_enabled	enum('0','1')	NO	0	
+posts	for_subscriptions	enum('0','1')	NO	0	
+posts	is_paid	enum('0','1')	NO	0	
+posts	post_price	float unsigned	NO	0	
+posts	paid_text	text	YES		
+posts	processing	enum('0','1')	NO	0	
+posts	pre_approved	enum('0','1')	NO	1	
+posts	has_approved	enum('0','1')	NO	0	
+posts_articles	article_id	int unsigned	NO		auto_increment
+posts_articles	post_id	int unsigned	NO		
+posts_articles	cover	varchar(256)	NO		
+posts_articles	title	varchar(256)	NO		
+posts_articles	text	text	NO		
+posts_articles	category_id	int unsigned	NO		
+posts_articles	tags	text	NO		
+posts_articles	views	int unsigned	NO	0	
+posts_audios	audio_id	int unsigned	NO		auto_increment
+posts_audios	post_id	int unsigned	NO		
+posts_audios	source	varchar(256)	NO		
+posts_audios	views	int	NO	0	
+posts_colored_patterns	pattern_id	int unsigned	NO		auto_increment
+posts_colored_patterns	type	enum('color','image')	NO	color	
+posts_colored_patterns	background_image	varchar(256)	YES		
+posts_colored_patterns	background_color_1	varchar(32)	YES		
+posts_colored_patterns	background_color_2	varchar(32)	YES		
+posts_colored_patterns	text_color	varchar(32)	YES		
+posts_comments	comment_id	int unsigned	NO		auto_increment
+posts_comments	node_id	int unsigned	NO		
+posts_comments	node_type	enum('post','photo','comment')	NO		
+posts_comments	user_id	int unsigned	NO		
+posts_comments	user_type	enum('user','page')	NO		
+posts_comments	text	longtext	NO		
+posts_comments	image	varchar(256)	YES		
+posts_comments	voice_note	varchar(256)	YES		
+posts_comments	time	datetime	NO		
+posts_comments	reaction_like_count	int unsigned	NO	0	
+posts_comments	reaction_love_count	int unsigned	NO	0	
+posts_comments	reaction_haha_count	int unsigned	NO	0	
+posts_comments	reaction_yay_count	int unsigned	NO	0	
+posts_comments	reaction_wow_count	int unsigned	NO	0	
+posts_comments	reaction_sad_count	int unsigned	NO	0	
+posts_comments	reaction_angry_count	int unsigned	NO	0	
+posts_comments	replies	int unsigned	NO	0	
+posts_comments	points_earned	enum('0','1')	NO	0	
+posts_comments_reactions	id	int unsigned	NO		auto_increment
+posts_comments_reactions	comment_id	int unsigned	NO		
+posts_comments_reactions	user_id	int unsigned	NO		
+posts_comments_reactions	reaction	varchar(32)	YES	like	
+posts_comments_reactions	reaction_time	datetime	YES		
+posts_comments_reactions	points_earned	enum('0','1')	NO	0	
+posts_files	file_id	int unsigned	NO		auto_increment
+posts_files	post_id	int unsigned	NO		
+posts_files	source	varchar(256)	NO		
+posts_funding	funding_id	int unsigned	NO		auto_increment
+posts_funding	post_id	int unsigned	NO		
+posts_funding	title	varchar(256)	NO		
+posts_funding	amount	float	NO	0	
+posts_funding	raised_amount	float	NO	0	
+posts_funding	total_donations	int	NO	0	
+posts_funding	cover_image	varchar(256)	NO		
+posts_funding_donors	donation_id	int unsigned	NO		auto_increment
+posts_funding_donors	user_id	int unsigned	NO		
+posts_funding_donors	post_id	int unsigned	NO		
+posts_funding_donors	donation_amount	float unsigned	NO	0	
+posts_funding_donors	donation_time	datetime	NO		
+posts_hidden	id	int unsigned	NO		auto_increment
+posts_hidden	post_id	int unsigned	NO		
+posts_hidden	user_id	int unsigned	NO		
+posts_jobs	job_id	int unsigned	NO		auto_increment
+posts_jobs	post_id	int unsigned	NO		
+posts_jobs	category_id	int unsigned	NO		
+posts_jobs	title	varchar(100)	NO		
+posts_jobs	location	varchar(100)	NO		
+posts_jobs	salary_minimum	float unsigned	NO		
+posts_jobs	salary_maximum	float unsigned	NO		
+posts_jobs	pay_salary_per	varchar(100)	NO		
+posts_jobs	type	varchar(100)	NO		
+posts_jobs	question_1_type	varchar(100)	YES		
+posts_jobs	question_1_title	varchar(256)	YES		
+posts_jobs	question_1_choices	text	YES		
+posts_jobs	question_2_type	varchar(100)	YES		
+posts_jobs	question_2_title	varchar(256)	YES		
+posts_jobs	question_2_choices	text	YES		
+posts_jobs	question_3_type	varchar(100)	YES		
+posts_jobs	question_3_title	varchar(256)	YES		
+posts_jobs	question_3_choices	text	YES		
+posts_jobs	cover_image	varchar(256)	NO		
+posts_jobs	available	enum('0','1')	NO	1	
+posts_jobs_applications	application_id	int unsigned	NO		auto_increment
+posts_jobs_applications	post_id	int unsigned	NO		
+posts_jobs_applications	user_id	int unsigned	NO		
+posts_jobs_applications	name	varchar(100)	NO		
+posts_jobs_applications	location	varchar(100)	NO		
+posts_jobs_applications	phone	varchar(100)	NO		
+posts_jobs_applications	email	varchar(100)	NO		
+posts_jobs_applications	work_place	varchar(100)	YES		
+posts_jobs_applications	work_position	varchar(100)	YES		
+posts_jobs_applications	work_description	text	YES		
+posts_jobs_applications	work_from	varchar(100)	YES		
+posts_jobs_applications	work_to	varchar(100)	YES		
+posts_jobs_applications	work_now	enum('0','1')	YES		
+posts_jobs_applications	question_1_answer	text	YES		
+posts_jobs_applications	question_2_answer	text	YES		
+posts_jobs_applications	question_3_answer	text	YES		
+posts_jobs_applications	cv	varchar(256)	YES		
+posts_jobs_applications	applied_time	datetime	NO		
+posts_links	link_id	int unsigned	NO		auto_increment
+posts_links	post_id	int unsigned	NO		
+posts_links	source_url	text	NO		
+posts_links	source_host	varchar(256)	NO		
+posts_links	source_title	text	NO		
+posts_links	source_text	mediumtext	NO		
+posts_links	source_thumbnail	text	NO		
+posts_live	live_id	int unsigned	NO		auto_increment
+posts_live	post_id	int unsigned	NO		
+posts_live	video_thumbnail	varchar(256)	NO		
+posts_live	agora_uid	int	NO		
+posts_live	agora_channel_name	varchar(256)	NO		
+posts_live	agora_resource_id	text	YES		
+posts_live	agora_sid	varchar(256)	YES		
+posts_live	agora_file	text	YES		
+posts_live	live_ended	enum('0','1')	NO	0	
+posts_live	live_recorded	enum('0','1')	NO	0	
+posts_live_users	id	int unsigned	NO		auto_increment
+posts_live_users	user_id	int unsigned	NO		
+posts_live_users	post_id	int unsigned	NO		
+posts_media	media_id	int unsigned	NO		auto_increment
+posts_media	post_id	int	NO		
+posts_media	source_url	mediumtext	NO		
+posts_media	source_provider	varchar(256)	NO		
+posts_media	source_type	varchar(256)	NO		
+posts_media	source_title	text	YES		
+posts_media	source_text	mediumtext	YES		
+posts_media	source_html	mediumtext	YES		
+posts_media	source_thumbnail	text	YES		
+posts_offers	offer_id	int unsigned	NO		auto_increment
+posts_offers	post_id	int unsigned	NO		
+posts_offers	category_id	int unsigned	NO		
+posts_offers	title	varchar(100)	NO		
+posts_offers	discount_type	varchar(32)	NO		
+posts_offers	discount_percent	int	YES		
+posts_offers	discount_amount	decimal(10,2)	YES		
+posts_offers	buy_x	int	YES		
+posts_offers	get_y	int	YES		
+posts_offers	spend_x	decimal(10,2)	YES		
+posts_offers	amount_y	decimal(10,2)	YES		
+posts_offers	end_date	datetime	YES		
+posts_offers	price	float unsigned	NO	0	
+posts_offers	thumbnail	varchar(256)	YES		
+posts_paid	id	int unsigned	NO		auto_increment
+posts_paid	post_id	int unsigned	NO		
+posts_paid	user_id	int unsigned	NO		
+posts_paid	time	datetime	NO		
+posts_photos	photo_id	int unsigned	NO		auto_increment
+posts_photos	post_id	int unsigned	NO		
+posts_photos	album_id	int unsigned	YES		
+posts_photos	source	varchar(256)	NO		
+posts_photos	storage_type	varchar(50)	YES		
+posts_photos	storage_data	text	YES		
+posts_photos	filename	varchar(255)	YES		
+posts_photos	blur	enum('0','1')	NO	0	
+posts_photos	pinned	enum('0','1')	NO	0	
+posts_photos	reaction_like_count	int unsigned	NO	0	
+posts_photos	reaction_love_count	int unsigned	NO	0	
+posts_photos	reaction_haha_count	int unsigned	NO	0	
+posts_photos	reaction_yay_count	int unsigned	NO	0	
+posts_photos	reaction_wow_count	int unsigned	NO	0	
+posts_photos	reaction_sad_count	int unsigned	NO	0	
+posts_photos	reaction_angry_count	int unsigned	NO	0	
+posts_photos	comments	int unsigned	NO	0	
+posts_photos_albums	album_id	int unsigned	NO		auto_increment
+posts_photos_albums	user_id	int unsigned	NO		
+posts_photos_albums	user_type	enum('user','page')	NO		
+posts_photos_albums	in_group	enum('0','1')	NO	0	
+posts_photos_albums	group_id	int unsigned	YES		
+posts_photos_albums	in_event	enum('0','1')	NO	0	
+posts_photos_albums	event_id	int unsigned	YES		
+posts_photos_albums	title	varchar(256)	NO		
+posts_photos_albums	privacy	enum('me','friends','public','custom')	NO	public	
+posts_photos_reactions	id	int unsigned	NO		auto_increment
+posts_photos_reactions	photo_id	int unsigned	NO		
+posts_photos_reactions	user_id	int unsigned	NO		
+posts_photos_reactions	reaction	varchar(32)	NO	like	
+posts_photos_reactions	reaction_time	datetime	YES		
+posts_photos_reactions	points_earned	enum('0','1')	YES	0	
+posts_polls	poll_id	int unsigned	NO		auto_increment
+posts_polls	post_id	int unsigned	NO		
+posts_polls	votes	int unsigned	NO	0	
+posts_polls_options	option_id	int unsigned	NO		auto_increment
+posts_polls_options	poll_id	int unsigned	NO		
+posts_polls_options	text	varchar(256)	NO		
+posts_polls_options_users	id	int unsigned	NO		auto_increment
+posts_polls_options_users	user_id	int unsigned	NO		
+posts_polls_options_users	poll_id	int unsigned	NO		
+posts_polls_options_users	option_id	int unsigned	NO		
+posts_products	product_id	int unsigned	NO		auto_increment
+posts_products	post_id	int unsigned	NO		
+posts_products	name	varchar(256)	NO		
+posts_products	price	float unsigned	NO	0	
+posts_products	quantity	int unsigned	NO	1	
+posts_products	category_id	int unsigned	NO		
+posts_products	status	enum('new','old')	NO	new	
+posts_products	location	varchar(255)	NO		
+posts_products	available	enum('0','1')	NO	1	
+posts_products	is_digital	enum('0','1')	NO	0	
+posts_products	product_download_url	text	YES		
+posts_products	product_file_source	varchar(256)	YES		
+posts_reactions	id	int unsigned	NO		auto_increment
+posts_reactions	post_id	int unsigned	NO		
+posts_reactions	user_id	int unsigned	NO		
+posts_reactions	reaction	varchar(32)	NO	like	
+posts_reactions	reaction_time	datetime	YES		
+posts_reactions	points_earned	enum('0','1')	NO	0	
+posts_saved	id	int unsigned	NO		auto_increment
+posts_saved	post_id	int unsigned	NO		
+posts_saved	user_id	int unsigned	NO		
+posts_saved	time	datetime	NO		
+posts_videos	video_id	int unsigned	NO		auto_increment
+posts_videos	post_id	int unsigned	NO		
+posts_videos	category_id	int unsigned	NO		
+posts_videos	source	varchar(256)	NO		
+posts_videos	source_240p	varchar(256)	YES		
+posts_videos	source_360p	varchar(256)	YES		
+posts_videos	source_480p	varchar(256)	YES		
+posts_videos	source_720p	varchar(256)	YES		
+posts_videos	source_1080p	varchar(256)	YES		
+posts_videos	source_1440p	varchar(256)	YES		
+posts_videos	source_2160p	varchar(256)	YES		
+posts_videos	thumbnail	varchar(256)	YES		
+posts_videos	views	int	NO	0	
+posts_videos_categories	category_id	int unsigned	NO		auto_increment
+posts_videos_categories	category_parent_id	int unsigned	NO		
+posts_videos_categories	category_name	varchar(256)	NO		
+posts_videos_categories	category_description	text	NO		
+posts_videos_categories	category_order	int unsigned	NO	1	
+posts_views	view_id	int unsigned	NO		auto_increment
+posts_views	view_date	datetime	NO		
+posts_views	post_id	int unsigned	NO		
+posts_views	user_id	int unsigned	YES		
+posts_views	guest_ip	varchar(64)	YES		
+reports	report_id	int unsigned	NO		auto_increment
+reports	user_id	int unsigned	NO		
+reports	node_id	int unsigned	NO		
+reports	node_type	varchar(32)	NO		
+reports	category_id	int unsigned	NO		
+reports	reason	text	NO		
+reports	time	datetime	NO		
+reports_categories	category_id	int unsigned	NO		auto_increment
+reports_categories	category_parent_id	int unsigned	NO		
+reports_categories	category_name	varchar(256)	NO		
+reports_categories	category_description	text	NO		
+reports_categories	category_order	int unsigned	NO	1	
+reviews	review_id	int unsigned	NO		auto_increment
+reviews	node_id	int unsigned	NO		
+reviews	node_type	varchar(32)	NO		
+reviews	user_id	int unsigned	NO		
+reviews	rate	smallint	NO		
+reviews	review	text	NO		
+reviews	reply	text	YES		
+reviews	time	datetime	NO		
+reviews_photos	photo_id	int unsigned	NO		auto_increment
+reviews_photos	review_id	int unsigned	NO		
+reviews_photos	source	varchar(256)	NO		
+shopping_cart	id	int	NO		auto_increment
+shopping_cart	user_id	int unsigned	NO		
+shopping_cart	product_post_id	int unsigned	NO		
+shopping_cart	quantity	int unsigned	NO	1	
+sneak_peaks	id	int unsigned	NO		auto_increment
+sneak_peaks	user_id	int unsigned	NO		
+sneak_peaks	node_id	int unsigned	NO		
+sneak_peaks	node_type	varchar(32)	NO		
+sneak_peaks	time	datetime	NO		
+static_pages	page_id	int unsigned	NO		auto_increment
+static_pages	page_url	varchar(64)	NO		
+static_pages	page_title	varchar(256)	NO		
+static_pages	page_text	mediumtext	NO		
+static_pages	page_in_footer	enum('0','1')	NO	1	
+static_pages	page_order	int unsigned	NO	1	
+stickers	sticker_id	int unsigned	NO		auto_increment
+stickers	image	varchar(256)	NO		
+stories	story_id	int unsigned	NO		auto_increment
+stories	user_id	int unsigned	NO		
+stories	is_ads	enum('0','1')	NO	0	
+stories	time	datetime	NO		
+stories	media_count	int	YES	1	
+stories_media	media_id	int unsigned	NO		auto_increment
+stories_media	story_id	int unsigned	NO		
+stories_media	source	varchar(256)	NO		
+stories_media	is_photo	enum('0','1')	NO	1	
+stories_media	text	text	YES		
+stories_media	time	datetime	NO		
+stories_media	storage_type	enum('google-cloud','cloudinary','local')	NO	google-cloud	
+stories_media	storage_data	json	YES		
+stories_media	thumbnail_path	varchar(500)	YES		
+story_reactions	id	int unsigned	NO		auto_increment
+story_reactions	story_id	int unsigned	NO		
+story_reactions	user_id	int unsigned	NO		
+story_reactions	reaction	enum('like','love','haha','wow','sad','angry')	NO		
+story_reactions	reacted_at	datetime	NO		
+story_reactions	created_at	timestamp	YES	CURRENT_TIMESTAMP	DEFAULT_GENERATED
+story_views	id	int unsigned	NO		auto_increment
+story_views	story_id	int unsigned	NO		
+story_views	user_id	int unsigned	NO		
+story_views	viewed_at	datetime	NO		
+story_views	created_at	timestamp	YES	CURRENT_TIMESTAMP	DEFAULT_GENERATED
+subscribers	id	int unsigned	NO		auto_increment
+subscribers	user_id	int unsigned	NO		
+subscribers	node_id	int unsigned	NO		
+subscribers	node_type	varchar(32)	NO		
+subscribers	plan_id	int unsigned	NO		
+subscribers	time	datetime	NO		
+system_countries	country_id	int unsigned	NO		auto_increment
+system_countries	country_code	varchar(2)	NO		
+system_countries	country_name	varchar(64)	NO		
+system_countries	phone_code	varchar(8)	YES		
+system_countries	country_vat	int unsigned	YES		
+system_countries	default	enum('0','1')	NO		
+system_countries	enabled	enum('0','1')	NO	1	
+system_countries	country_order	int unsigned	NO	1	
+system_currencies	currency_id	int unsigned	NO		auto_increment
+system_currencies	name	varchar(256)	NO		
+system_currencies	code	varchar(32)	NO		
+system_currencies	symbol	varchar(32)	NO		
+system_currencies	dir	enum('left','right')	NO	left	
+system_currencies	default	enum('0','1')	NO		
+system_currencies	enabled	enum('0','1')	NO	1	
+system_genders	gender_id	int unsigned	NO		auto_increment
+system_genders	gender_name	varchar(64)	NO		
+system_genders	gender_order	int	NO	1	
+system_languages	language_id	int unsigned	NO		auto_increment
+system_languages	code	varchar(32)	NO		
+system_languages	title	varchar(256)	NO		
+system_languages	flag	varchar(256)	NO		
+system_languages	dir	enum('LTR','RTL')	NO		
+system_languages	default	enum('0','1')	NO		
+system_languages	enabled	enum('0','1')	NO		
+system_languages	language_order	int unsigned	NO	1	
+system_options	option_id	int unsigned	NO		auto_increment
+system_options	option_name	varchar(128)	NO		
+system_options	option_value	text	NO		
+system_reactions	reaction_id	int unsigned	NO		auto_increment
+system_reactions	reaction	varchar(32)	NO		
+system_reactions	title	varchar(32)	NO		
+system_reactions	color	varchar(128)	YES		
+system_reactions	image	varchar(256)	NO		
+system_reactions	reaction_order	int unsigned	NO	1	
+system_reactions	enabled	enum('0','1')	NO	1	
+system_themes	theme_id	int unsigned	NO		auto_increment
+system_themes	name	varchar(64)	NO		
+system_themes	default	enum('0','1')	NO		
+system_themes	enabled	enum('0','1')	NO		
+users	user_id	int unsigned	NO		auto_increment
+users	user_master_account	int	NO	0	
+users	user_group	tinyint unsigned	NO	3	
+users	user_group_custom	int	NO	0	
+users	user_demo	enum('0','1')	NO	0	
+users	user_name	varchar(64)	NO		
+users	user_email	varchar(64)	NO		
+users	user_email_verified	enum('0','1')	NO	0	
+users	user_email_verification_code	varchar(64)	YES		
+users	user_phone	varchar(64)	YES		
+users	user_phone_verified	enum('0','1')	NO	0	
+users	user_phone_verification_code	varchar(64)	YES		
+users	user_password	varchar(64)	NO		
+users	user_two_factor_enabled	enum('0','1')	NO	0	
+users	user_two_factor_type	enum('email','sms','google')	YES		
+users	user_two_factor_key	varchar(64)	YES		
+users	user_two_factor_gsecret	varchar(64)	YES		
+users	user_activated	enum('0','1')	NO	0	
+users	user_reseted	enum('0','1')	NO	0	
+users	user_reset_key	varchar(64)	YES		
+users	user_subscribed	enum('0','1')	NO	0	
+users	user_package	int unsigned	YES		
+users	user_package_videos_categories	text	YES		
+users	user_package_blogs_categories	text	YES		
+users	user_subscription_date	datetime	YES		
+users	user_boosted_posts	int unsigned	NO	0	
+users	user_boosted_pages	int unsigned	NO	0	
+users	user_started	enum('0','1')	NO	0	
+users	user_verified	enum('0','1')	NO	0	
+users	user_banned	enum('0','1')	NO	0	
+users	user_banned_message	text	YES		
+users	user_live_requests_counter	int unsigned	NO	0	
+users	user_live_requests_lastid	int unsigned	NO	0	
+users	user_live_messages_counter	int unsigned	NO	0	
+users	user_live_messages_lastid	int unsigned	NO	0	
+users	user_live_notifications_counter	int unsigned	NO	0	
+users	user_live_notifications_lastid	int unsigned	NO	0	
+users	user_latitude	varchar(256)	NO	0	
+users	user_longitude	varchar(256)	NO	0	
+users	user_location_updated	datetime	YES		
+users	user_firstname	varchar(256)	NO		
+users	user_lastname	varchar(256)	YES		
+users	user_gender	int unsigned	YES		
+users	user_picture	varchar(255)	YES		
+users	user_picture_id	int unsigned	YES		
+users	user_cover	varchar(256)	YES		
+users	user_cover_id	int unsigned	YES		
+users	user_cover_position	varchar(256)	YES		
+users	user_album_pictures	int unsigned	YES		
+users	user_album_covers	int unsigned	YES		
+users	user_album_timeline	int unsigned	YES		
+users	user_pinned_post	int unsigned	YES		
+users	user_registered	datetime	YES		
+users	user_last_seen	timestamp	NO	CURRENT_TIMESTAMP	DEFAULT_GENERATED
+users	user_first_failed_login	datetime	YES		
+users	user_failed_login_ip	varchar(64)	YES		
+users	user_failed_login_count	int unsigned	NO	0	
+users	user_country	int unsigned	YES		
+users	user_birthdate	date	YES		
+users	user_relationship	varchar(256)	YES		
+users	user_biography	text	YES		
+users	user_website	varchar(256)	YES		
+users	user_work_title	varchar(256)	YES		
+users	user_work_place	varchar(256)	YES		
+users	user_work_url	varchar(256)	YES		
+users	user_current_city	varchar(256)	YES		
+users	user_hometown	varchar(256)	YES		
+users	user_edu_major	varchar(256)	YES		
+users	user_edu_school	varchar(256)	YES		
+users	user_edu_class	varchar(256)	YES		
+users	user_social_facebook	varchar(256)	YES		
+users	user_social_twitter	varchar(256)	YES		
+users	user_social_youtube	varchar(256)	YES		
+users	user_social_instagram	varchar(256)	YES		
+users	user_social_twitch	varchar(256)	YES		
+users	user_social_linkedin	varchar(256)	YES		
+users	user_social_vkontakte	varchar(256)	YES		
+users	user_profile_background	varchar(256)	YES		
+users	user_chat_enabled	enum('0','1')	NO	1	
+users	user_newsletter_enabled	enum('0','1')	NO	1	
+users	user_tips_enabled	enum('0','1')	NO	1	
+users	user_privacy_poke	enum('me','friends','public')	NO	public	
+users	user_privacy_gifts	enum('me','friends','public')	NO	public	
+users	user_privacy_wall	enum('me','friends','public')	NO	friends	
+users	user_privacy_gender	enum('me','friends','public')	NO	public	
+users	user_privacy_birthdate	enum('me','friends','public')	NO	public	
+users	user_privacy_relationship	enum('me','friends','public')	NO	public	
+users	user_privacy_basic	enum('me','friends','public')	NO	public	
+users	user_privacy_work	enum('me','friends','public')	NO	public	
+users	user_privacy_location	enum('me','friends','public')	NO	public	
+users	user_privacy_education	enum('me','friends','public')	NO	public	
+users	user_privacy_other	enum('me','friends','public')	NO	public	
+users	user_privacy_friends	enum('me','friends','public')	NO	public	
+users	user_privacy_followers	enum('me','friends','public')	NO	public	
+users	user_privacy_photos	enum('me','friends','public')	NO	public	
+users	user_privacy_pages	enum('me','friends','public')	NO	public	
+users	user_privacy_groups	enum('me','friends','public')	NO	public	
+users	user_privacy_events	enum('me','friends','public')	NO	public	
+users	user_privacy_subscriptions	enum('me','friends','public')	NO	public	
+users	email_post_likes	enum('0','1')	NO	1	
+users	email_post_comments	enum('0','1')	NO	1	
+users	email_post_shares	enum('0','1')	NO	1	
+users	email_wall_posts	enum('0','1')	NO	1	
+users	email_mentions	enum('0','1')	NO	1	
+users	email_profile_visits	enum('0','1')	NO	1	
+users	email_friend_requests	enum('0','1')	NO	1	
+users	email_user_verification	enum('0','1')	NO	1	
+users	email_user_post_approval	enum('0','1')	NO	1	
+users	email_admin_verifications	enum('0','1')	NO	1	
+users	email_admin_post_approval	enum('0','1')	NO	1	
+users	facebook_connected	enum('0','1')	NO	0	
+users	facebook_id	varchar(128)	YES		
+users	google_connected	enum('0','1')	NO	0	
+users	google_id	varchar(128)	YES		
+users	twitter_connected	enum('0','1')	NO	0	
+users	twitter_id	varchar(128)	YES		
+users	instagram_connected	enum('0','1')	NO	0	
+users	instagram_id	varchar(128)	YES		
+users	linkedin_connected	enum('0','1')	NO	0	
+users	linkedin_id	varchar(128)	YES		
+users	vkontakte_connected	enum('0','1')	NO	0	
+users	vkontakte_id	varchar(128)	YES		
+users	wordpress_connected	enum('0','1')	NO	0	
+users	wordpress_id	varchar(128)	YES		
+users	sngine_connected	enum('0','1')	NO	0	
+users	sngine_id	varchar(128)	YES		
+users	user_referrer_id	int	YES		
+users	points_earned	enum('0','1')	NO	0	
+users	user_points	float	NO	0	
+users	user_wallet_balance	float	NO	0	
+users	user_affiliate_balance	float	NO	0	
+users	user_market_balance	float	NO	0	
+users	user_funding_balance	float	NO	0	
+users	user_monetization_enabled	enum('0','1')	NO	0	
+users	user_monetization_chat_price	float	NO	0	
+users	user_monetization_call_price	float	NO	0	
+users	user_monetization_min_price	float	NO	0	
+users	user_monetization_plans	int unsigned	NO	0	
+users	user_monetization_balance	float	NO	0	
+users	chat_sound	enum('0','1')	NO	1	
+users	notifications_sound	enum('0','1')	NO	1	
+users	onesignal_user_id	varchar(100)	YES		
+users	user_language	varchar(16)	YES	en_us	
+users	user_free_tried	enum('0','1')	NO	0	
+users	coinbase_hash	varchar(128)	YES		
+users	coinbase_code	varchar(128)	YES		
+users	user_online_status	enum('online','offline','away')	YES	offline	
+users	user_last_active	datetime	YES		
+users	user_referral_code	varchar(32)	YES		
+users	fcm_token	varchar(255)	YES		
+users_accounts	id	int unsigned	NO		auto_increment
+users_accounts	user_id	int unsigned	NO		
+users_accounts	account_id	int unsigned	NO		
+users_addresses	address_id	int unsigned	NO		auto_increment
+users_addresses	user_id	int unsigned	NO		
+users_addresses	address_title	varchar(256)	NO		
+users_addresses	address_country	varchar(256)	NO		
+users_addresses	address_city	varchar(256)	NO		
+users_addresses	address_zip_code	varchar(256)	NO		
+users_addresses	address_phone	varchar(256)	NO		
+users_addresses	address_details	text	NO		
+users_affiliates	id	int unsigned	NO		auto_increment
+users_affiliates	referrer_id	int unsigned	NO		
+users_affiliates	referee_id	int unsigned	NO		
+users_blocks	id	int unsigned	NO		auto_increment
+users_blocks	user_id	int unsigned	NO		
+users_blocks	blocked_id	int unsigned	NO		
+users_gifts	id	int unsigned	NO		auto_increment
+users_gifts	from_user_id	int unsigned	NO		
+users_gifts	to_user_id	int unsigned	NO		
+users_gifts	gift_id	int unsigned	NO		
+users_groups	user_group_id	int unsigned	NO		auto_increment
+users_groups	user_group_title	varchar(255)	NO		
+users_groups	permissions_group_id	int unsigned	NO		
+users_invitations	id	int unsigned	NO		auto_increment
+users_invitations	user_id	int unsigned	NO		
+users_invitations	email_phone	varchar(64)	NO		
+users_invitations	invitation_date	datetime	NO		
+users_pokes	id	int unsigned	NO		auto_increment
+users_pokes	user_id	int unsigned	NO		
+users_pokes	poked_id	int unsigned	NO		
+users_recurring_payments	id	int unsigned	NO		auto_increment
+users_recurring_payments	user_id	int unsigned	NO		
+users_recurring_payments	payment_gateway	varchar(256)	NO		
+users_recurring_payments	handle	varchar(256)	NO		
+users_recurring_payments	handle_id	int unsigned	NO		
+users_recurring_payments	subscription_id	varchar(256)	NO		
+users_recurring_payments	time	datetime	NO		
+users_searches	log_id	int unsigned	NO		auto_increment
+users_searches	user_id	int unsigned	NO		
+users_searches	node_id	int unsigned	NO		
+users_searches	node_type	varchar(32)	NO		
+users_searches	time	datetime	YES		
+users_sessions	session_id	int unsigned	NO		auto_increment
+users_sessions	session_token	varchar(512)	YES		
+users_sessions	session_date	datetime	NO		
+users_sessions	session_type	enum('W','A','I')	NO	W	
+users_sessions	user_id	int unsigned	NO		
+users_sessions	user_ip	varchar(64)	NO		
+users_sessions	user_browser	varchar(64)	YES		
+users_sessions	user_os	varchar(64)	NO		
+users_sessions	user_os_version	varchar(64)	YES		
+users_sessions	user_device_name	varchar(64)	YES		
+users_sessions	refresh_token	text	YES		
+users_sms	id	int unsigned	NO		auto_increment
+users_sms	phone	varchar(256)	NO		
+users_sms	insert_date	datetime	NO		
+users_top_friends	id	int unsigned	NO		auto_increment
+users_top_friends	user_id	int unsigned	NO		
+users_top_friends	friend_id	int unsigned	NO		
+verification_requests	request_id	int unsigned	NO		auto_increment
+verification_requests	node_id	int unsigned	NO		
+verification_requests	node_type	varchar(32)	NO		
+verification_requests	photo	varchar(256)	YES		
+verification_requests	passport	varchar(256)	YES		
+verification_requests	business_website	text	YES		
+verification_requests	business_address	text	YES		
+verification_requests	message	text	YES		
+verification_requests	time	datetime	NO		
+verification_requests	status	tinyint(1)	NO		
+wallet_payments	payment_id	int	NO		auto_increment
+wallet_payments	user_id	int unsigned	NO		
+wallet_payments	amount	varchar(32)	NO		
+wallet_payments	method	varchar(64)	NO		
+wallet_payments	method_value	text	NO		
+wallet_payments	time	datetime	NO		
+wallet_payments	status	tinyint(1)	NO		
+wallet_transactions	transaction_id	int	NO		auto_increment
+wallet_transactions	user_id	int unsigned	NO		
+wallet_transactions	node_type	varchar(32)	NO		
+wallet_transactions	node_id	int unsigned	YES		
+wallet_transactions	amount	varchar(32)	NO		
+wallet_transactions	type	enum('in','out')	NO		
+wallet_transactions	description	varchar(255)	YES		
+wallet_transactions	date	datetime	NO		
+widgets	widget_id	int unsigned	NO		auto_increment
+widgets	title	varchar(256)	NO		
+widgets	place	varchar(32)	NO		
+widgets	place_order	int unsigned	NO	1	
+widgets	code	mediumtext	NO		
+
+
+
+
+OLD TABLE
+
+
+table_name	column_name	column_type	is_nullable	column_default	extra
+ads_campaigns	campaign_id	int(10)	NO	
+auto_increment
+ads_campaigns	campaign_user_id	int(10) unsigned	NO	
+
+ads_campaigns	campaign_title	varchar(256)	NO	
+
+ads_campaigns	campaign_start_date	datetime	NO	
+
+ads_campaigns	campaign_end_date	datetime	NO	
+
+ads_campaigns	campaign_budget	double	NO	
+
+ads_campaigns	campaign_spend	double	NO	0	
+ads_campaigns	campaign_bidding	enum('click','view')	NO	
+
+ads_campaigns	audience_countries	mediumtext	NO	
+
+ads_campaigns	audience_gender	varchar(32)	NO	
+
+ads_campaigns	audience_relationship	varchar(64)	NO	
+
+ads_campaigns	ads_title	varchar(255)	YES	NULL	
+ads_campaigns	ads_description	mediumtext	YES	NULL	
+ads_campaigns	ads_type	varchar(32)	NO	
+
+ads_campaigns	ads_url	varchar(256)	YES	NULL	
+ads_campaigns	ads_page	int(10) unsigned	YES	NULL	
+ads_campaigns	ads_group	int(10) unsigned	YES	NULL	
+ads_campaigns	ads_event	int(10) unsigned	YES	NULL	
+ads_campaigns	ads_placement	enum('newsfeed','sidebar')	NO	
+
+ads_campaigns	ads_image	varchar(256)	NO	
+
+ads_campaigns	campaign_created_date	datetime	NO	
+
+ads_campaigns	campaign_is_active	enum('0','1')	NO	'1'	
+ads_campaigns	campaign_is_approved	enum('0','1')	NO	'0'	
+ads_campaigns	campaign_is_declined	enum('0','1')	NO	'0'	
+ads_campaigns	campaign_views	int(10) unsigned	NO	0	
+ads_campaigns	campaign_clicks	int(10) unsigned	NO	0	
+ads_system	ads_id	int(10)	NO	
+auto_increment
+ads_system	title	varchar(256)	NO	
+
+ads_system	place	varchar(32)	NO	
+
+ads_system	ads_pages_ids	text	YES	NULL	
+ads_system	ads_groups_ids	text	YES	NULL	
+ads_system	code	mediumtext	NO	
+
+ads_system	time	datetime	NO	
+
+affiliates_payments	payment_id	int(10)	NO	
+auto_increment
+affiliates_payments	user_id	int(10) unsigned	NO	
+
+affiliates_payments	amount	varchar(32)	NO	
+
+affiliates_payments	method	varchar(64)	NO	
+
+affiliates_payments	method_value	text	NO	
+
+affiliates_payments	time	datetime	NO	
+
+affiliates_payments	status	tinyint(1)	NO	
+
+announcements	announcement_id	int(10)	NO	
+auto_increment
+announcements	name	varchar(256)	NO	
+
+announcements	title	varchar(256)	NO	
+
+announcements	type	varchar(32)	NO	
+
+announcements	code	mediumtext	NO	
+
+announcements	start_date	datetime	NO	
+
+announcements	end_date	datetime	NO	
+
+announcements_users	id	int(10) unsigned	NO	
+auto_increment
+announcements_users	announcement_id	int(10) unsigned	NO	
+
+announcements_users	user_id	int(10) unsigned	NO	
+
+auto_connect	id	int(10) unsigned	NO	
+auto_increment
+auto_connect	type	varchar(32)	NO	
+
+auto_connect	country_id	int(10) unsigned	NO	
+
+auto_connect	nodes_ids	text	NO	
+
+bank_transfers	transfer_id	int(10) unsigned	NO	
+auto_increment
+bank_transfers	user_id	int(10) unsigned	NO	
+
+bank_transfers	handle	varchar(32)	NO	
+
+bank_transfers	package_id	int(10) unsigned	YES	NULL	
+bank_transfers	post_id	int(10) unsigned	YES	NULL	
+bank_transfers	plan_id	int(10) unsigned	YES	NULL	
+bank_transfers	movie_id	int(10) unsigned	YES	NULL	
+bank_transfers	price	float	YES	NULL	
+bank_transfers	bank_receipt	varchar(256)	NO	
+
+bank_transfers	time	datetime	NO	
+
+bank_transfers	status	tinyint(1)	NO	0	
+blacklist	node_id	int(10) unsigned	NO	
+auto_increment
+blacklist	node_type	enum('ip','email','username')	NO	
+
+blacklist	node_value	varchar(64)	NO	
+
+blacklist	created_time	datetime	NO	
+
+blogs_categories	category_id	int(10) unsigned	NO	
+auto_increment
+blogs_categories	category_parent_id	int(10) unsigned	NO	
+
+blogs_categories	category_name	varchar(256)	NO	
+
+blogs_categories	category_description	text	NO	
+
+blogs_categories	category_order	int(10) unsigned	NO	1	
+coinpayments_transactions	transaction_id	int(10) unsigned	NO	
+auto_increment
+coinpayments_transactions	transaction_txn_id	text	YES	NULL	
+coinpayments_transactions	user_id	int(10) unsigned	NO	
+
+coinpayments_transactions	amount	varchar(32)	NO	
+
+coinpayments_transactions	product	text	NO	
+
+coinpayments_transactions	created_at	datetime	NO	
+
+coinpayments_transactions	last_update	datetime	NO	
+
+coinpayments_transactions	status	tinyint(1) unsigned	NO	
+
+coinpayments_transactions	status_message	text	YES	NULL	
+conversations	conversation_id	int(10) unsigned	NO	
+auto_increment
+conversations	last_message_id	int(10) unsigned	NO	
+
+conversations	color	varchar(32)	YES	NULL	
+conversations	node_id	int(10) unsigned	YES	NULL	
+conversations	node_type	varchar(128)	YES	NULL	
+conversations_calls_audio	call_id	int(10) unsigned	NO	
+auto_increment
+conversations_calls_audio	from_user_id	int(10) unsigned	NO	
+
+conversations_calls_audio	from_user_token	mediumtext	NO	
+
+conversations_calls_audio	to_user_id	int(10) unsigned	NO	
+
+conversations_calls_audio	to_user_token	mediumtext	NO	
+
+conversations_calls_audio	room	varchar(64)	NO	
+
+conversations_calls_audio	answered	enum('0','1')	NO	'0'	
+conversations_calls_audio	declined	enum('0','1')	NO	'0'	
+conversations_calls_audio	created_time	datetime	NO	
+
+conversations_calls_audio	updated_time	datetime	NO	
+
+conversations_calls_video	call_id	int(10) unsigned	NO	
+auto_increment
+conversations_calls_video	from_user_id	int(10) unsigned	NO	
+
+conversations_calls_video	from_user_token	text	NO	
+
+conversations_calls_video	to_user_id	int(10) unsigned	NO	
+
+conversations_calls_video	to_user_token	text	NO	
+
+conversations_calls_video	room	varchar(64)	NO	
+
+conversations_calls_video	answered	enum('0','1')	NO	'0'	
+conversations_calls_video	declined	enum('0','1')	NO	'0'	
+conversations_calls_video	created_time	datetime	NO	
+
+conversations_calls_video	updated_time	datetime	NO	
+
+conversations_messages	message_id	int(10) unsigned	NO	
+auto_increment
+conversations_messages	conversation_id	int(10) unsigned	NO	
+
+conversations_messages	user_id	int(10) unsigned	NO	
+
+conversations_messages	message	longtext	NO	
+
+conversations_messages	image	varchar(256)	NO	
+
+conversations_messages	voice_note	varchar(256)	NO	
+
+conversations_messages	time	datetime	NO	
+
+conversations_users	id	int(10) unsigned	NO	
+auto_increment
+conversations_users	conversation_id	int(10) unsigned	NO	
+
+conversations_users	user_id	int(10) unsigned	NO	
+
+conversations_users	seen	enum('0','1')	NO	'0'	
+conversations_users	typing	enum('0','1')	NO	'0'	
+conversations_users	deleted	enum('0','1')	NO	'0'	
+custom_fields	field_id	int(10) unsigned	NO	
+auto_increment
+custom_fields	field_for	varchar(64)	NO	
+
+custom_fields	type	varchar(32)	NO	
+
+custom_fields	select_options	mediumtext	NO	
+
+custom_fields	label	varchar(256)	NO	
+
+custom_fields	description	mediumtext	NO	
+
+custom_fields	place	varchar(32)	NO	
+
+custom_fields	length	int(10)	NO	32	
+custom_fields	field_order	int(10)	NO	1	
+custom_fields	is_link	enum('0','1')	NO	'0'	
+custom_fields	mandatory	enum('0','1')	NO	'0'	
+custom_fields	in_registration	enum('0','1')	NO	'0'	
+custom_fields	in_profile	enum('0','1')	NO	'0'	
+custom_fields	in_search	enum('0','1')	NO	'0'	
+custom_fields_values	value_id	int(10) unsigned	NO	
+auto_increment
+custom_fields_values	value	mediumtext	NO	
+
+custom_fields_values	field_id	int(10) unsigned	NO	
+
+custom_fields_values	node_id	int(10) unsigned	NO	
+
+custom_fields_values	node_type	varchar(64)	NO	
+
+developers_apps	app_id	int(10) unsigned	NO	
+auto_increment
+developers_apps	app_user_id	int(10) unsigned	NO	
+
+developers_apps	app_category_id	int(10) unsigned	NO	
+
+developers_apps	app_auth_id	varchar(128)	NO	
+
+developers_apps	app_auth_secret	varchar(128)	NO	
+
+developers_apps	app_name	varchar(256)	NO	
+
+developers_apps	app_domain	varchar(256)	NO	
+
+developers_apps	app_redirect_url	varchar(256)	NO	
+
+developers_apps	app_description	mediumtext	NO	
+
+developers_apps	app_icon	varchar(256)	NO	
+
+developers_apps	app_date	datetime	NO	
+
+developers_apps_categories	category_id	int(10) unsigned	NO	
+auto_increment
+developers_apps_categories	category_parent_id	int(10) unsigned	NO	
+
+developers_apps_categories	category_name	varchar(256)	NO	
+
+developers_apps_categories	category_description	text	NO	
+
+developers_apps_categories	category_order	int(10) unsigned	NO	1	
+developers_apps_users	id	int(10) unsigned	NO	
+auto_increment
+developers_apps_users	app_id	int(10) unsigned	NO	
+
+developers_apps_users	user_id	int(10) unsigned	NO	
+
+developers_apps_users	auth_key	varchar(128)	NO	
+
+developers_apps_users	access_token	varchar(128)	YES	NULL	
+developers_apps_users	access_token_date	datetime	YES	NULL	
+emojis	emoji_id	int(10) unsigned	NO	
+auto_increment
+emojis	unicode_char	varchar(256)	NO	
+
+emojis	class	varchar(256)	NO	
+
+events	event_id	int(10) unsigned	NO	
+auto_increment
+events	event_privacy	enum('secret','closed','public')	YES	'public'	
+events	event_admin	int(10) unsigned	NO	
+
+events	event_page_id	int(10) unsigned	YES	NULL	
+events	event_category	int(10) unsigned	NO	
+
+events	event_title	varchar(256)	NO	
+
+events	event_location	varchar(256)	YES	NULL	
+events	event_description	mediumtext	NO	
+
+events	event_start_date	datetime	NO	
+
+events	event_end_date	datetime	NO	
+
+events	event_publish_enabled	enum('0','1')	NO	'1'	
+events	event_publish_approval_enabled	enum('0','1')	NO	'0'	
+events	event_cover	varchar(256)	YES	NULL	
+events	event_cover_id	int(10) unsigned	YES	NULL	
+events	event_cover_position	varchar(256)	YES	NULL	
+events	event_album_covers	int(10)	YES	NULL	
+events	event_album_timeline	int(10)	YES	NULL	
+events	event_pinned_post	int(10)	YES	NULL	
+events	event_invited	int(10) unsigned	NO	0	
+events	event_interested	int(10) unsigned	NO	0	
+events	event_going	int(10) unsigned	NO	0	
+events	chatbox_enabled	enum('0','1')	NO	'0'	
+events	chatbox_conversation_id	int(10) unsigned	YES	NULL	
+events	event_tickets_link	varchar(256)	YES	NULL	
+events	event_prices	text	YES	NULL	
+events	event_rate	float	NO	0	
+events	event_date	datetime	NO	
+
+events_categories	category_id	int(10) unsigned	NO	
+auto_increment
+events_categories	category_parent_id	int(10) unsigned	NO	
+
+events_categories	category_name	varchar(256)	NO	
+
+events_categories	category_description	text	NO	
+
+events_categories	category_order	int(10) unsigned	NO	1	
+events_members	id	int(10) unsigned	NO	
+auto_increment
+events_members	event_id	int(10) unsigned	NO	
+
+events_members	user_id	int(10) unsigned	NO	
+
+events_members	is_invited	enum('0','1')	YES	'0'	
+events_members	is_interested	enum('0','1')	YES	'0'	
+events_members	is_going	enum('0','1')	YES	'0'	
+followings	id	int(10) unsigned	NO	
+auto_increment
+followings	user_id	int(10) unsigned	NO	
+
+followings	following_id	int(10) unsigned	NO	
+
+followings	points_earned	enum('0','1')	NO	'0'	
+followings	time	datetime	YES	NULL	
+forums	forum_id	int(10) unsigned	NO	
+auto_increment
+forums	forum_section	int(10) unsigned	NO	
+
+forums	forum_name	varchar(256)	NO	
+
+forums	forum_description	mediumtext	YES	NULL	
+forums	forum_order	int(10) unsigned	NO	1	
+forums	forum_threads	int(10) unsigned	NO	0	
+forums	forum_replies	int(10) unsigned	NO	0	
+forums_replies	reply_id	int(10) unsigned	NO	
+auto_increment
+forums_replies	thread_id	int(10) unsigned	NO	
+
+forums_replies	user_id	int(10) unsigned	NO	
+
+forums_replies	text	longtext	NO	
+
+forums_replies	time	datetime	NO	
+
+forums_threads	thread_id	int(10) unsigned	NO	
+auto_increment
+forums_threads	forum_id	int(10) unsigned	NO	
+
+forums_threads	user_id	int(10) unsigned	NO	
+
+forums_threads	title	varchar(256)	NO	
+
+forums_threads	text	longtext	NO	
+
+forums_threads	replies	int(10) unsigned	NO	0	
+forums_threads	views	int(10) unsigned	NO	0	
+forums_threads	time	datetime	NO	
+
+forums_threads	last_reply	datetime	YES	NULL	
+friends	id	int(10) unsigned	NO	
+auto_increment
+friends	user_one_id	int(10) unsigned	NO	
+
+friends	user_two_id	int(10) unsigned	NO	
+
+friends	status	tinyint(1)	NO	
+
+funding_payments	payment_id	int(10)	NO	
+auto_increment
+funding_payments	user_id	int(10) unsigned	NO	
+
+funding_payments	amount	varchar(32)	NO	
+
+funding_payments	method	varchar(64)	NO	
+
+funding_payments	method_value	text	NO	
+
+funding_payments	time	datetime	NO	
+
+funding_payments	status	tinyint(1)	NO	
+
+games	game_id	int(10)	NO	
+auto_increment
+games	title	varchar(256)	NO	
+
+games	description	mediumtext	NO	
+
+games	genres	mediumtext	YES	NULL	
+games	source	mediumtext	NO	
+
+games	thumbnail	varchar(256)	NO	
+
+games_genres	genre_id	int(10) unsigned	NO	
+auto_increment
+games_genres	genre_name	varchar(256)	NO	
+
+games_genres	genre_description	text	NO	
+
+games_genres	genre_order	int(10) unsigned	NO	1	
+games_players	id	int(10) unsigned	NO	
+auto_increment
+games_players	game_id	int(10) unsigned	NO	
+
+games_players	user_id	int(10) unsigned	NO	
+
+games_players	last_played_time	datetime	YES	NULL	
+gifts	gift_id	int(10) unsigned	NO	
+auto_increment
+gifts	image	varchar(256)	NO	
+
+groups	group_id	int(10) unsigned	NO	
+auto_increment
+groups	group_privacy	enum('secret','closed','public')	YES	'public'	
+groups	group_admin	int(10) unsigned	NO	
+
+groups	group_category	int(10) unsigned	NO	
+
+groups	group_name	varchar(64)	NO	
+
+groups	group_title	varchar(256)	NO	
+
+groups	group_description	mediumtext	NO	
+
+groups	group_publish_enabled	enum('0','1')	NO	'1'	
+groups	group_publish_approval_enabled	enum('0','1')	NO	'0'	
+groups	group_picture	varchar(256)	YES	NULL	
+groups	group_picture_id	int(10) unsigned	YES	NULL	
+groups	group_cover	varchar(256)	YES	NULL	
+groups	group_cover_id	int(10) unsigned	YES	NULL	
+groups	group_cover_position	varchar(256)	YES	NULL	
+groups	group_album_pictures	int(10)	YES	NULL	
+groups	group_album_covers	int(10)	YES	NULL	
+groups	group_album_timeline	int(10)	YES	NULL	
+groups	group_pinned_post	int(10)	YES	NULL	
+groups	group_members	int(10) unsigned	NO	0	
+groups	group_monetization_enabled	enum('0','1')	NO	'0'	
+groups	group_monetization_min_price	float	NO	0	
+groups	group_monetization_plans	int(10) unsigned	NO	0	
+groups	chatbox_enabled	enum('0','1')	NO	'0'	
+groups	chatbox_conversation_id	int(10) unsigned	YES	NULL	
+groups	group_rate	float	NO	0	
+groups	group_date	datetime	NO	
+
+groups_admins	id	int(10) unsigned	NO	
+auto_increment
+groups_admins	group_id	int(10) unsigned	NO	
+
+groups_admins	user_id	int(10) unsigned	NO	
+
+groups_categories	category_id	int(10) unsigned	NO	
+auto_increment
+groups_categories	category_parent_id	int(10) unsigned	NO	
+
+groups_categories	category_name	varchar(256)	NO	
+
+groups_categories	category_description	text	NO	
+
+groups_categories	category_order	int(10) unsigned	NO	1	
+groups_members	id	int(10) unsigned	NO	
+auto_increment
+groups_members	group_id	int(10) unsigned	NO	
+
+groups_members	user_id	int(10) unsigned	NO	
+
+groups_members	approved	enum('0','1')	NO	'0'	
+hashtags	hashtag_id	int(10) unsigned	NO	
+auto_increment
+hashtags	hashtag	varchar(256)	NO	
+
+hashtags_posts	id	int(10) unsigned	NO	
+auto_increment
+hashtags_posts	post_id	int(10) unsigned	NO	
+
+hashtags_posts	hashtag_id	int(10) unsigned	NO	
+
+hashtags_posts	created_at	datetime	YES	NULL	
+invitation_codes	code_id	int(10) unsigned	NO	
+auto_increment
+invitation_codes	code	varchar(64)	NO	
+
+invitation_codes	created_by	int(10) unsigned	NO	
+
+invitation_codes	created_date	datetime	NO	
+
+invitation_codes	used_by	int(10) unsigned	YES	NULL	
+invitation_codes	used_date	datetime	YES	NULL	
+invitation_codes	used	enum('0','1')	NO	'0'	
+jobs_categories	category_id	int(10) unsigned	NO	
+auto_increment
+jobs_categories	category_parent_id	int(10) unsigned	NO	
+
+jobs_categories	category_name	varchar(256)	NO	
+
+jobs_categories	category_description	text	NO	
+
+jobs_categories	category_order	int(10) unsigned	NO	1	
+log_commissions	payment_id	int(10)	NO	
+auto_increment
+log_commissions	user_id	int(10) unsigned	NO	
+
+log_commissions	amount	float	NO	
+
+log_commissions	handle	varchar(128)	NO	
+
+log_commissions	time	datetime	NO	
+
+log_payments	payment_id	int(10)	NO	
+auto_increment
+log_payments	user_id	int(10) unsigned	NO	
+
+log_payments	amount	float	NO	
+
+log_payments	method	varchar(64)	NO	
+
+log_payments	handle	varchar(128)	NO	
+
+log_payments	time	datetime	NO	
+
+log_sessions	session_id	int(10) unsigned	NO	
+auto_increment
+log_sessions	session_date	datetime	NO	
+
+log_sessions	session_type	enum('W','A','I')	NO	'W'	
+log_sessions	session_ip	varchar(64)	NO	
+
+log_sessions	session_user_agent	varchar(256)	YES	NULL	
+log_sessions	user_browser	varchar(64)	YES	NULL	
+log_sessions	user_os	varchar(64)	YES	NULL	
+market_categories	category_id	int(10) unsigned	NO	
+auto_increment
+market_categories	category_parent_id	int(10) unsigned	NO	
+
+market_categories	category_name	varchar(256)	NO	
+
+market_categories	category_description	text	NO	
+
+market_categories	category_order	int(10) unsigned	NO	1	
+market_payments	payment_id	int(10)	NO	
+auto_increment
+market_payments	user_id	int(10) unsigned	NO	
+
+market_payments	amount	varchar(32)	NO	
+
+market_payments	method	varchar(64)	NO	
+
+market_payments	method_value	text	NO	
+
+market_payments	time	datetime	NO	
+
+market_payments	status	tinyint(1)	NO	
+
+monetization_payments	payment_id	int(10)	NO	
+auto_increment
+monetization_payments	user_id	int(10) unsigned	NO	
+
+monetization_payments	amount	varchar(32)	NO	
+
+monetization_payments	method	varchar(64)	NO	
+
+monetization_payments	method_value	text	NO	
+
+monetization_payments	time	datetime	NO	
+
+monetization_payments	status	tinyint(1)	NO	
+
+monetization_plans	plan_id	int(10)	NO	
+auto_increment
+monetization_plans	node_id	int(10) unsigned	NO	
+
+monetization_plans	node_type	varchar(32)	NO	
+
+monetization_plans	title	varchar(256)	NO	
+
+monetization_plans	price	float	NO	
+
+monetization_plans	period_num	int(10) unsigned	NO	
+
+monetization_plans	period	varchar(32)	NO	
+
+monetization_plans	custom_description	text	YES	NULL	
+monetization_plans	plan_order	int(10) unsigned	NO	1	
+monetization_plans	paypal_billing_plan	varchar(256)	YES	NULL	
+monetization_plans	stripe_billing_plan	varchar(256)	YES	NULL	
+movies	movie_id	int(10) unsigned	NO	
+auto_increment
+movies	source	text	NO	
+
+movies	source_type	varchar(64)	NO	
+
+movies	title	varchar(256)	NO	
+
+movies	description	text	YES	NULL	
+movies	imdb_url	text	YES	NULL	
+movies	stars	text	YES	NULL	
+movies	release_year	int(10)	YES	NULL	
+movies	duration	int(10)	YES	NULL	
+movies	genres	mediumtext	YES	NULL	
+movies	poster	varchar(256)	YES	NULL	
+movies	views	int(10) unsigned	NO	0	
+movies	is_paid	enum('0','1')	NO	'0'	
+movies	price	float	NO	0	
+movies	available_for	int(10)	NO	0	
+movies_genres	genre_id	int(10) unsigned	NO	
+auto_increment
+movies_genres	genre_name	varchar(256)	NO	
+
+movies_genres	genre_description	text	NO	
+
+movies_genres	genre_order	int(10) unsigned	NO	1	
+movies_payments	id	int(10) unsigned	NO	
+auto_increment
+movies_payments	movie_id	int(10) unsigned	NO	
+
+movies_payments	user_id	int(10) unsigned	NO	
+
+movies_payments	payment_time	datetime	NO	
+
+notifications	notification_id	int(10) unsigned	NO	
+auto_increment
+notifications	to_user_id	int(10) unsigned	NO	
+
+notifications	from_user_id	int(10) unsigned	NO	
+
+notifications	from_user_type	enum('user','page')	NO	'user'	
+notifications	action	varchar(256)	NO	
+
+notifications	node_type	varchar(256)	NO	
+
+notifications	node_url	varchar(256)	NO	
+
+notifications	notify_id	varchar(256)	YES	NULL	
+notifications	message	mediumtext	YES	NULL	
+notifications	time	datetime	YES	NULL	
+notifications	seen	enum('0','1')	NO	'0'	
+offers_categories	category_id	int(10) unsigned	NO	
+auto_increment
+offers_categories	category_parent_id	int(10) unsigned	NO	
+
+offers_categories	category_name	varchar(256)	NO	
+
+offers_categories	category_description	text	NO	
+
+offers_categories	category_order	int(10) unsigned	NO	1	
+orders	order_id	int(10) unsigned	NO	
+auto_increment
+orders	order_hash	varchar(128)	NO	
+
+orders	is_digital	enum('0','1')	NO	'0'	
+orders	seller_id	int(10) unsigned	NO	
+
+orders	buyer_id	int(10) unsigned	NO	
+
+orders	buyer_address_id	int(10) unsigned	NO	
+
+orders	sub_total	float unsigned	NO	0	
+orders	commission	float unsigned	NO	
+
+orders	status	enum('placed','canceled','accepted','packed','shipped','delivered')	NO	'placed'	
+orders	tracking_link	text	YES	NULL	
+orders	tracking_number	text	YES	NULL	
+orders	insert_time	datetime	NO	
+
+orders	update_time	datetime	NO	
+
+orders_items	id	int(10)	NO	
+auto_increment
+orders_items	order_id	int(10) unsigned	NO	
+
+orders_items	product_post_id	int(10) unsigned	NO	
+
+orders_items	quantity	int(10) unsigned	NO	
+
+orders_items	price	float unsigned	NO	
+
+packages	package_id	int(10)	NO	
+auto_increment
+packages	name	varchar(256)	NO	
+
+packages	price	varchar(32)	NO	
+
+packages	period_num	int(10) unsigned	NO	
+
+packages	period	varchar(32)	NO	
+
+packages	color	varchar(32)	NO	
+
+packages	icon	varchar(256)	NO	
+
+packages	package_permissions_group_id	int(10) unsigned	NO	0	
+packages	allowed_blogs_categories	int(10)	NO	0	
+packages	allowed_videos_categories	int(10)	NO	0	
+packages	allowed_products	int(10)	NO	0	
+packages	verification_badge_enabled	enum('0','1')	NO	'0'	
+packages	boost_posts_enabled	enum('0','1')	NO	'0'	
+packages	boost_posts	int(10) unsigned	NO	
+
+packages	boost_pages_enabled	enum('0','1')	NO	'0'	
+packages	boost_pages	int(10) unsigned	NO	
+
+packages	custom_description	text	YES	NULL	
+packages	package_order	int(10) unsigned	NO	1	
+packages	paypal_billing_plan	varchar(256)	YES	NULL	
+packages	stripe_billing_plan	varchar(256)	YES	NULL	
+packages_payments	payment_id	int(10)	NO	
+auto_increment
+packages_payments	payment_date	datetime	NO	
+
+packages_payments	package_name	varchar(256)	NO	
+
+packages_payments	package_price	float unsigned	NO	
+
+packages_payments	user_id	int(10) unsigned	NO	
+
+pages	page_id	int(10) unsigned	NO	
+auto_increment
+pages	page_admin	int(10) unsigned	NO	
+
+pages	page_category	int(10) unsigned	NO	
+
+pages	page_name	varchar(64)	NO	
+
+pages	page_title	varchar(256)	NO	
+
+pages	page_picture	varchar(256)	YES	NULL	
+pages	page_picture_id	int(10) unsigned	YES	NULL	
+pages	page_cover	varchar(256)	YES	NULL	
+pages	page_cover_id	int(10) unsigned	YES	NULL	
+pages	page_cover_position	varchar(256)	YES	NULL	
+pages	page_album_pictures	int(10) unsigned	YES	NULL	
+pages	page_album_covers	int(10) unsigned	YES	NULL	
+pages	page_album_timeline	int(10) unsigned	YES	NULL	
+pages	page_pinned_post	int(10) unsigned	YES	NULL	
+pages	page_verified	enum('0','1')	NO	'0'	
+pages	page_tips_enabled	enum('0','1')	NO	'0'	
+pages	page_boosted	enum('0','1')	NO	'0'	
+pages	page_boosted_by	int(10) unsigned	YES	NULL	
+pages	page_company	varchar(256)	YES	NULL	
+pages	page_phone	varchar(256)	YES	NULL	
+pages	page_website	varchar(256)	YES	NULL	
+pages	page_location	varchar(256)	YES	NULL	
+pages	page_country	int(10) unsigned	NO	
+
+pages	page_description	mediumtext	NO	
+
+pages	page_action_text	varchar(32)	YES	NULL	
+pages	page_action_color	varchar(32)	YES	NULL	
+pages	page_action_url	varchar(256)	YES	NULL	
+pages	page_social_facebook	varchar(256)	YES	NULL	
+pages	page_social_twitter	varchar(256)	YES	NULL	
+pages	page_social_youtube	varchar(256)	YES	NULL	
+pages	page_social_instagram	varchar(256)	YES	NULL	
+pages	page_social_linkedin	varchar(256)	YES	NULL	
+pages	page_social_vkontakte	varchar(256)	YES	NULL	
+pages	page_likes	int(10) unsigned	NO	0	
+pages	page_monetization_enabled	enum('0','1')	NO	'0'	
+pages	page_monetization_min_price	float	NO	0	
+pages	page_monetization_plans	int(10) unsigned	NO	0	
+pages	page_rate	float	NO	0	
+pages	page_date	datetime	NO	
+
+pages_admins	id	int(10) unsigned	NO	
+auto_increment
+pages_admins	page_id	int(10) unsigned	NO	
+
+pages_admins	user_id	int(10) unsigned	NO	
+
+pages_categories	category_id	int(10) unsigned	NO	
+auto_increment
+pages_categories	category_parent_id	int(10) unsigned	NO	
+
+pages_categories	category_name	varchar(256)	NO	
+
+pages_categories	category_description	text	NO	
+
+pages_categories	category_order	int(10) unsigned	NO	1	
+pages_invites	id	int(10) unsigned	NO	
+auto_increment
+pages_invites	page_id	int(10) unsigned	NO	
+
+pages_invites	user_id	int(10) unsigned	NO	
+
+pages_invites	from_user_id	int(10) unsigned	NO	
+
+pages_likes	id	int(10) unsigned	NO	
+auto_increment
+pages_likes	page_id	int(10) unsigned	NO	
+
+pages_likes	user_id	int(10) unsigned	NO	
+
+permissions_groups	permissions_group_id	int(10) unsigned	NO	
+auto_increment
+permissions_groups	permissions_group_title	varchar(255)	NO	
+
+permissions_groups	pages_permission	enum('0','1')	NO	'0'	
+permissions_groups	groups_permission	enum('0','1')	NO	'0'	
+permissions_groups	events_permission	enum('0','1')	NO	'0'	
+permissions_groups	posts_permission	enum('0','1')	NO	'0'	
+permissions_groups	blogs_permission	enum('0','1')	NO	'0'	
+permissions_groups	market_permission	enum('0','1')	NO	'0'	
+permissions_groups	offers_permission	enum('0','1')	NO	'0'	
+permissions_groups	jobs_permission	enum('0','1')	NO	'0'	
+permissions_groups	forums_permission	enum('0','1')	NO	'0'	
+permissions_groups	movies_permission	enum('0','1')	NO	'0'	
+permissions_groups	games_permission	enum('0','1')	NO	'0'	
+permissions_groups	gifts_permission	enum('0','1')	NO	'0'	
+permissions_groups	blogs_permission_read	enum('0','1')	NO	'0'	
+permissions_groups	videos_permission_read	enum('0','1')	NO	'0'	
+permissions_groups	stories_permission	enum('0','1')	NO	'0'	
+permissions_groups	colored_posts_permission	enum('0','1')	NO	'0'	
+permissions_groups	activity_posts_permission	enum('0','1')	NO	'0'	
+permissions_groups	polls_posts_permission	enum('0','1')	NO	'0'	
+permissions_groups	geolocation_posts_permission	enum('0','1')	NO	'0'	
+permissions_groups	gif_posts_permission	enum('0','1')	NO	'0'	
+permissions_groups	anonymous_posts_permission	enum('0','1')	NO	'0'	
+permissions_groups	invitation_permission	enum('0','1')	NO	'0'	
+permissions_groups	audio_call_permission	enum('0','1')	NO	'0'	
+permissions_groups	video_call_permission	enum('0','1')	NO	'0'	
+permissions_groups	live_permission	enum('0','1')	NO	'0'	
+permissions_groups	videos_upload_permission	enum('0','1')	NO	'0'	
+permissions_groups	audios_upload_permission	enum('0','1')	NO	'0'	
+permissions_groups	files_upload_permission	enum('0','1')	NO	'0'	
+permissions_groups	ads_permission	enum('0','1')	NO	'0'	
+permissions_groups	fundings_permission	enum('0','1')	NO	'0'	
+permissions_groups	monetization_permission	enum('0','1')	NO	'0'	
+permissions_groups	tips_permission	enum('0','1')	NO	'0'	
+points_payments	payment_id	int(10)	NO	
+auto_increment
+points_payments	user_id	int(10) unsigned	NO	
+
+points_payments	amount	varchar(32)	NO	
+
+points_payments	method	varchar(64)	NO	
+
+points_payments	method_value	text	NO	
+
+points_payments	time	datetime	NO	
+
+points_payments	status	tinyint(1)	NO	
+
+posts	post_id	int(10) unsigned	NO	
+auto_increment
+posts	user_id	int(10) unsigned	NO	
+
+posts	user_type	enum('user','page')	NO	
+
+posts	in_group	enum('0','1')	NO	'0'	
+posts	group_id	int(10) unsigned	YES	NULL	
+posts	group_approved	enum('0','1')	NO	'1'	
+posts	in_event	enum('0','1')	NO	'0'	
+posts	event_id	int(10) unsigned	YES	NULL	
+posts	event_approved	enum('0','1')	NO	'1'	
+posts	in_wall	enum('0','1')	NO	'0'	
+posts	wall_id	int(10) unsigned	YES	NULL	
+posts	post_type	varchar(32)	NO	
+
+posts	colored_pattern	int(10) unsigned	YES	NULL	
+posts	origin_id	int(10) unsigned	YES	NULL	
+posts	time	datetime	NO	
+
+posts	location	varchar(256)	YES	NULL	
+posts	privacy	varchar(32)	NO	
+
+posts	text	longtext	YES	NULL	
+posts	feeling_action	varchar(32)	YES	NULL	
+posts	feeling_value	varchar(256)	YES	NULL	
+posts	boosted	enum('0','1')	NO	'0'	
+posts	boosted_by	int(10) unsigned	YES	NULL	
+posts	comments_disabled	enum('0','1')	NO	'0'	
+posts	is_hidden	enum('0','1')	NO	'0'	
+posts	for_adult	enum('0','1')	NO	'0'	
+posts	is_anonymous	enum('0','1')	NO	'0'	
+posts	reaction_like_count	int(10) unsigned	NO	0	
+posts	reaction_love_count	int(10) unsigned	NO	0	
+posts	reaction_haha_count	int(10) unsigned	NO	0	
+posts	reaction_yay_count	int(10) unsigned	NO	0	
+posts	reaction_wow_count	int(10) unsigned	NO	0	
+posts	reaction_sad_count	int(10) unsigned	NO	0	
+posts	reaction_angry_count	int(10) unsigned	NO	0	
+posts	comments	int(10) unsigned	NO	0	
+posts	shares	int(10) unsigned	NO	0	
+posts	views	int(10) unsigned	NO	0	
+posts	post_rate	float	NO	0	
+posts	points_earned	enum('0','1')	NO	'0'	
+posts	tips_enabled	enum('0','1')	NO	'0'	
+posts	for_subscriptions	enum('0','1')	NO	'0'	
+posts	is_paid	enum('0','1')	NO	'0'	
+posts	post_price	float unsigned	NO	0	
+posts	paid_text	text	YES	NULL	
+posts	processing	enum('0','1')	NO	'0'	
+posts	pre_approved	enum('0','1')	NO	'1'	
+posts	has_approved	enum('0','1')	NO	'0'	
+posts_articles	article_id	int(10) unsigned	NO	
+auto_increment
+posts_articles	post_id	int(10) unsigned	NO	
+
+posts_articles	cover	varchar(256)	NO	
+
+posts_articles	title	varchar(256)	NO	
+
+posts_articles	text	text	NO	
+
+posts_articles	category_id	int(10) unsigned	NO	
+
+posts_articles	tags	text	NO	
+
+posts_articles	views	int(10) unsigned	NO	0	
+posts_audios	audio_id	int(10) unsigned	NO	
+auto_increment
+posts_audios	post_id	int(10) unsigned	NO	
+
+posts_audios	source	varchar(256)	NO	
+
+posts_audios	views	int(10)	NO	0	
+posts_colored_patterns	pattern_id	int(10) unsigned	NO	
+auto_increment
+posts_colored_patterns	type	enum('color','image')	NO	'color'	
+posts_colored_patterns	background_image	varchar(256)	YES	NULL	
+posts_colored_patterns	background_color_1	varchar(32)	YES	NULL	
+posts_colored_patterns	background_color_2	varchar(32)	YES	NULL	
+posts_colored_patterns	text_color	varchar(32)	YES	NULL	
+posts_comments	comment_id	int(10) unsigned	NO	
+auto_increment
+posts_comments	node_id	int(10) unsigned	NO	
+
+posts_comments	node_type	enum('post','photo','comment')	NO	
+
+posts_comments	user_id	int(10) unsigned	NO	
+
+posts_comments	user_type	enum('user','page')	NO	
+
+posts_comments	text	longtext	NO	
+
+posts_comments	image	varchar(256)	YES	NULL	
+posts_comments	voice_note	varchar(256)	YES	NULL	
+posts_comments	time	datetime	NO	
+
+posts_comments	reaction_like_count	int(10) unsigned	NO	0	
+posts_comments	reaction_love_count	int(10) unsigned	NO	0	
+posts_comments	reaction_haha_count	int(10) unsigned	NO	0	
+posts_comments	reaction_yay_count	int(10) unsigned	NO	0	
+posts_comments	reaction_wow_count	int(10) unsigned	NO	0	
+posts_comments	reaction_sad_count	int(10) unsigned	NO	0	
+posts_comments	reaction_angry_count	int(10) unsigned	NO	0	
+posts_comments	replies	int(10) unsigned	NO	0	
+posts_comments	points_earned	enum('0','1')	NO	'0'	
+posts_comments_reactions	id	int(10) unsigned	NO	
+auto_increment
+posts_comments_reactions	comment_id	int(10) unsigned	NO	
+
+posts_comments_reactions	user_id	int(10) unsigned	NO	
+
+posts_comments_reactions	reaction	varchar(32)	YES	'like'	
+posts_comments_reactions	reaction_time	datetime	YES	NULL	
+posts_comments_reactions	points_earned	enum('0','1')	NO	'0'	
+posts_files	file_id	int(10) unsigned	NO	
+auto_increment
+posts_files	post_id	int(10) unsigned	NO	
+
+posts_files	source	varchar(256)	NO	
+
+posts_funding	funding_id	int(10) unsigned	NO	
+auto_increment
+posts_funding	post_id	int(10) unsigned	NO	
+
+posts_funding	title	varchar(256)	NO	
+
+posts_funding	amount	float	NO	0	
+posts_funding	raised_amount	float	NO	0	
+posts_funding	total_donations	int(10)	NO	0	
+posts_funding	cover_image	varchar(256)	NO	
+
+posts_funding_donors	donation_id	int(10) unsigned	NO	
+auto_increment
+posts_funding_donors	user_id	int(10) unsigned	NO	
+
+posts_funding_donors	post_id	int(10) unsigned	NO	
+
+posts_funding_donors	donation_amount	float unsigned	NO	0	
+posts_funding_donors	donation_time	datetime	NO	
+
+posts_hidden	id	int(10) unsigned	NO	
+auto_increment
+posts_hidden	post_id	int(10) unsigned	NO	
+
+posts_hidden	user_id	int(10) unsigned	NO	
+
+posts_jobs	job_id	int(10) unsigned	NO	
+auto_increment
+posts_jobs	post_id	int(10) unsigned	NO	
+
+posts_jobs	category_id	int(10) unsigned	NO	
+
+posts_jobs	title	varchar(100)	NO	
+
+posts_jobs	location	varchar(100)	NO	
+
+posts_jobs	salary_minimum	float unsigned	NO	
+
+posts_jobs	salary_maximum	float unsigned	NO	
+
+posts_jobs	pay_salary_per	varchar(100)	NO	
+
+posts_jobs	type	varchar(100)	NO	
+
+posts_jobs	question_1_type	varchar(100)	YES	NULL	
+posts_jobs	question_1_title	varchar(256)	YES	NULL	
+posts_jobs	question_1_choices	text	YES	NULL	
+posts_jobs	question_2_type	varchar(100)	YES	NULL	
+posts_jobs	question_2_title	varchar(256)	YES	NULL	
+posts_jobs	question_2_choices	text	YES	NULL	
+posts_jobs	question_3_type	varchar(100)	YES	NULL	
+posts_jobs	question_3_title	varchar(256)	YES	NULL	
+posts_jobs	question_3_choices	text	YES	NULL	
+posts_jobs	cover_image	varchar(256)	NO	
+
+posts_jobs	available	enum('0','1')	NO	'1'	
+posts_jobs_applications	application_id	int(10) unsigned	NO	
+auto_increment
+posts_jobs_applications	post_id	int(10) unsigned	NO	
+
+posts_jobs_applications	user_id	int(10) unsigned	NO	
+
+posts_jobs_applications	name	varchar(100)	NO	
+
+posts_jobs_applications	location	varchar(100)	NO	
+
+posts_jobs_applications	phone	varchar(100)	NO	
+
+posts_jobs_applications	email	varchar(100)	NO	
+
+posts_jobs_applications	work_place	varchar(100)	YES	NULL	
+posts_jobs_applications	work_position	varchar(100)	YES	NULL	
+posts_jobs_applications	work_description	text	YES	NULL	
+posts_jobs_applications	work_from	varchar(100)	YES	NULL	
+posts_jobs_applications	work_to	varchar(100)	YES	NULL	
+posts_jobs_applications	work_now	enum('0','1')	YES	NULL	
+posts_jobs_applications	question_1_answer	text	YES	NULL	
+posts_jobs_applications	question_2_answer	text	YES	NULL	
+posts_jobs_applications	question_3_answer	text	YES	NULL	
+posts_jobs_applications	cv	varchar(256)	YES	NULL	
+posts_jobs_applications	applied_time	datetime	NO	
+
+posts_links	link_id	int(10) unsigned	NO	
+auto_increment
+posts_links	post_id	int(10) unsigned	NO	
+
+posts_links	source_url	text	NO	
+
+posts_links	source_host	varchar(256)	NO	
+
+posts_links	source_title	text	NO	
+
+posts_links	source_text	mediumtext	NO	
+
+posts_links	source_thumbnail	text	NO	
+
+posts_live	live_id	int(10) unsigned	NO	
+auto_increment
+posts_live	post_id	int(10) unsigned	NO	
+
+posts_live	video_thumbnail	varchar(256)	NO	
+
+posts_live	agora_uid	int(10)	NO	
+
+posts_live	agora_channel_name	varchar(256)	NO	
+
+posts_live	agora_resource_id	text	YES	NULL	
+posts_live	agora_sid	varchar(256)	YES	NULL	
+posts_live	agora_file	text	YES	NULL	
+posts_live	live_ended	enum('0','1')	NO	'0'	
+posts_live	live_recorded	enum('0','1')	NO	'0'	
+posts_live_users	id	int(10) unsigned	NO	
+auto_increment
+posts_live_users	user_id	int(10) unsigned	NO	
+
+posts_live_users	post_id	int(10) unsigned	NO	
+
+posts_media	media_id	int(10) unsigned	NO	
+auto_increment
+posts_media	post_id	int(10)	NO	
+
+posts_media	source_url	mediumtext	NO	
+
+posts_media	source_provider	varchar(256)	NO	
+
+posts_media	source_type	varchar(256)	NO	
+
+posts_media	source_title	text	YES	NULL	
+posts_media	source_text	mediumtext	YES	NULL	
+posts_media	source_html	mediumtext	YES	NULL	
+posts_media	source_thumbnail	text	YES	NULL	
+posts_offers	offer_id	int(10) unsigned	NO	
+auto_increment
+posts_offers	post_id	int(10) unsigned	NO	
+
+posts_offers	category_id	int(10) unsigned	NO	
+
+posts_offers	title	varchar(100)	NO	
+
+posts_offers	discount_type	varchar(32)	NO	
+
+posts_offers	discount_percent	int(10) unsigned	NO	
+
+posts_offers	discount_amount	varchar(100)	NO	
+
+posts_offers	buy_x	varchar(100)	NO	
+
+posts_offers	get_y	varchar(100)	NO	
+
+posts_offers	spend_x	varchar(100)	NO	
+
+posts_offers	amount_y	varchar(100)	NO	
+
+posts_offers	end_date	datetime	YES	NULL	
+posts_offers	price	float unsigned	NO	0	
+posts_offers	thumbnail	varchar(256)	YES	NULL	
+posts_paid	id	int(10) unsigned	NO	
+auto_increment
+posts_paid	post_id	int(10) unsigned	NO	
+
+posts_paid	user_id	int(10) unsigned	NO	
+
+posts_paid	time	datetime	NO	
+
+posts_photos	photo_id	int(10) unsigned	NO	
+auto_increment
+posts_photos	post_id	int(10) unsigned	NO	
+
+posts_photos	album_id	int(10) unsigned	YES	NULL	
+posts_photos	source	varchar(256)	NO	
+
+posts_photos	blur	enum('0','1')	NO	'0'	
+posts_photos	pinned	enum('0','1')	NO	'0'	
+posts_photos	reaction_like_count	int(10) unsigned	NO	0	
+posts_photos	reaction_love_count	int(10) unsigned	NO	0	
+posts_photos	reaction_haha_count	int(10) unsigned	NO	0	
+posts_photos	reaction_yay_count	int(10) unsigned	NO	0	
+posts_photos	reaction_wow_count	int(10) unsigned	NO	0	
+posts_photos	reaction_sad_count	int(10) unsigned	NO	0	
+posts_photos	reaction_angry_count	int(10) unsigned	NO	0	
+posts_photos	comments	int(10) unsigned	NO	0	
+posts_photos_albums	album_id	int(10) unsigned	NO	
+auto_increment
+posts_photos_albums	user_id	int(10) unsigned	NO	
+
+posts_photos_albums	user_type	enum('user','page')	NO	
+
+posts_photos_albums	in_group	enum('0','1')	NO	'0'	
+posts_photos_albums	group_id	int(10) unsigned	YES	NULL	
+posts_photos_albums	in_event	enum('0','1')	NO	'0'	
+posts_photos_albums	event_id	int(10) unsigned	YES	NULL	
+posts_photos_albums	title	varchar(256)	NO	
+
+posts_photos_albums	privacy	enum('me','friends','public','custom')	NO	'public'	
+posts_photos_reactions	id	int(10) unsigned	NO	
+auto_increment
+posts_photos_reactions	photo_id	int(10) unsigned	NO	
+
+posts_photos_reactions	user_id	int(10) unsigned	NO	
+
+posts_photos_reactions	reaction	varchar(32)	NO	'like'	
+posts_photos_reactions	reaction_time	datetime	YES	NULL	
+posts_photos_reactions	points_earned	enum('0','1')	YES	'0'	
+posts_polls	poll_id	int(10) unsigned	NO	
+auto_increment
+posts_polls	post_id	int(10) unsigned	NO	
+
+posts_polls	votes	int(10) unsigned	NO	0	
+posts_polls_options	option_id	int(10) unsigned	NO	
+auto_increment
+posts_polls_options	poll_id	int(10) unsigned	NO	
+
+posts_polls_options	text	varchar(256)	NO	
+
+posts_polls_options_users	id	int(10) unsigned	NO	
+auto_increment
+posts_polls_options_users	user_id	int(10) unsigned	NO	
+
+posts_polls_options_users	poll_id	int(10) unsigned	NO	
+
+posts_polls_options_users	option_id	int(10) unsigned	NO	
+
+posts_products	product_id	int(10) unsigned	NO	
+auto_increment
+posts_products	post_id	int(10) unsigned	NO	
+
+posts_products	name	varchar(256)	NO	
+
+posts_products	price	float unsigned	NO	0	
+posts_products	quantity	int(10) unsigned	NO	1	
+posts_products	category_id	int(10) unsigned	NO	
+
+posts_products	status	enum('new','old')	NO	'new'	
+posts_products	location	varchar(255)	NO	
+
+posts_products	available	enum('0','1')	NO	'1'	
+posts_products	is_digital	enum('0','1')	NO	'0'	
+posts_products	product_download_url	text	YES	NULL	
+posts_products	product_file_source	varchar(256)	YES	NULL	
+posts_reactions	id	int(10) unsigned	NO	
+auto_increment
+posts_reactions	post_id	int(10) unsigned	NO	
+
+posts_reactions	user_id	int(10) unsigned	NO	
+
+posts_reactions	reaction	varchar(32)	NO	'like'	
+posts_reactions	reaction_time	datetime	YES	NULL	
+posts_reactions	points_earned	enum('0','1')	NO	'0'	
+posts_saved	id	int(10) unsigned	NO	
+auto_increment
+posts_saved	post_id	int(10) unsigned	NO	
+
+posts_saved	user_id	int(10) unsigned	NO	
+
+posts_saved	time	datetime	NO	
+
+posts_videos	video_id	int(10) unsigned	NO	
+auto_increment
+posts_videos	post_id	int(10) unsigned	NO	
+
+posts_videos	category_id	int(10) unsigned	NO	
+
+posts_videos	source	varchar(256)	NO	
+
+posts_videos	source_240p	varchar(256)	YES	NULL	
+posts_videos	source_360p	varchar(256)	YES	NULL	
+posts_videos	source_480p	varchar(256)	YES	NULL	
+posts_videos	source_720p	varchar(256)	YES	NULL	
+posts_videos	source_1080p	varchar(256)	YES	NULL	
+posts_videos	source_1440p	varchar(256)	YES	NULL	
+posts_videos	source_2160p	varchar(256)	YES	NULL	
+posts_videos	thumbnail	varchar(256)	YES	NULL	
+posts_videos	views	int(10)	NO	0	
+posts_videos_categories	category_id	int(10) unsigned	NO	
+auto_increment
+posts_videos_categories	category_parent_id	int(10) unsigned	NO	
+
+posts_videos_categories	category_name	varchar(256)	NO	
+
+posts_videos_categories	category_description	text	NO	
+
+posts_videos_categories	category_order	int(10) unsigned	NO	1	
+posts_views	view_id	int(10) unsigned	NO	
+auto_increment
+posts_views	view_date	datetime	NO	
+
+posts_views	post_id	int(10) unsigned	NO	
+
+posts_views	user_id	int(10) unsigned	YES	NULL	
+posts_views	guest_ip	varchar(64)	YES	NULL	
+reports	report_id	int(10) unsigned	NO	
+auto_increment
+reports	user_id	int(10) unsigned	NO	
+
+reports	node_id	int(10) unsigned	NO	
+
+reports	node_type	varchar(32)	NO	
+
+reports	category_id	int(10) unsigned	NO	
+
+reports	reason	text	NO	
+
+reports	time	datetime	NO	
+
+reports_categories	category_id	int(10) unsigned	NO	
+auto_increment
+reports_categories	category_parent_id	int(10) unsigned	NO	
+
+reports_categories	category_name	varchar(256)	NO	
+
+reports_categories	category_description	text	NO	
+
+reports_categories	category_order	int(10) unsigned	NO	1	
+reviews	review_id	int(10) unsigned	NO	
+auto_increment
+reviews	node_id	int(10) unsigned	NO	
+
+reviews	node_type	varchar(32)	NO	
+
+reviews	user_id	int(10) unsigned	NO	
+
+reviews	rate	smallint(1)	NO	
+
+reviews	review	text	NO	
+
+reviews	reply	text	YES	NULL	
+reviews	time	datetime	NO	
+
+reviews_photos	photo_id	int(10) unsigned	NO	
+auto_increment
+reviews_photos	review_id	int(10) unsigned	NO	
+
+reviews_photos	source	varchar(256)	NO	
+
+shopping_cart	id	int(10)	NO	
+auto_increment
+shopping_cart	user_id	int(10) unsigned	NO	
+
+shopping_cart	product_post_id	int(10) unsigned	NO	
+
+shopping_cart	quantity	int(10) unsigned	NO	1	
+sneak_peaks	id	int(10) unsigned	NO	
+auto_increment
+sneak_peaks	user_id	int(10) unsigned	NO	
+
+sneak_peaks	node_id	int(10) unsigned	NO	
+
+sneak_peaks	node_type	varchar(32)	NO	
+
+sneak_peaks	time	datetime	NO	
+
+static_pages	page_id	int(10) unsigned	NO	
+auto_increment
+static_pages	page_url	varchar(64)	NO	
+
+static_pages	page_title	varchar(256)	NO	
+
+static_pages	page_text	mediumtext	NO	
+
+static_pages	page_in_footer	enum('0','1')	NO	'1'	
+static_pages	page_order	int(10) unsigned	NO	1	
+stickers	sticker_id	int(10) unsigned	NO	
+auto_increment
+stickers	image	varchar(256)	NO	
+
+stories	story_id	int(10) unsigned	NO	
+auto_increment
+stories	user_id	int(10) unsigned	NO	
+
+stories	is_ads	enum('0','1')	NO	'0'	
+stories	time	datetime	NO	
+
+stories_media	media_id	int(10) unsigned	NO	
+auto_increment
+stories_media	story_id	int(10) unsigned	NO	
+
+stories_media	source	varchar(256)	NO	
+
+stories_media	is_photo	enum('0','1')	NO	'1'	
+stories_media	text	text	NO	
+
+stories_media	time	datetime	NO	
+
+subscribers	id	int(10) unsigned	NO	
+auto_increment
+subscribers	user_id	int(10) unsigned	NO	
+
+subscribers	node_id	int(10) unsigned	NO	
+
+subscribers	node_type	varchar(32)	NO	
+
+subscribers	plan_id	int(10) unsigned	NO	
+
+subscribers	time	datetime	NO	
+
+system_countries	country_id	int(10) unsigned	NO	
+auto_increment
+system_countries	country_code	varchar(2)	NO	
+
+system_countries	country_name	varchar(64)	NO	
+
+system_countries	phone_code	varchar(8)	YES	NULL	
+system_countries	country_vat	int(10) unsigned	YES	NULL	
+system_countries	default	enum('0','1')	NO	
+
+system_countries	enabled	enum('0','1')	NO	'1'	
+system_countries	country_order	int(10) unsigned	NO	1	
+system_currencies	currency_id	int(10) unsigned	NO	
+auto_increment
+system_currencies	name	varchar(256)	NO	
+
+system_currencies	code	varchar(32)	NO	
+
+system_currencies	symbol	varchar(32)	NO	
+
+system_currencies	dir	enum('left','right')	NO	'left'	
+system_currencies	default	enum('0','1')	NO	
+
+system_currencies	enabled	enum('0','1')	NO	'1'	
+system_genders	gender_id	int(10) unsigned	NO	
+auto_increment
+system_genders	gender_name	varchar(64)	NO	
+
+system_genders	gender_order	int(10)	NO	1	
+system_languages	language_id	int(10) unsigned	NO	
+auto_increment
+system_languages	code	varchar(32)	NO	
+
+system_languages	title	varchar(256)	NO	
+
+system_languages	flag	varchar(256)	NO	
+
+system_languages	dir	enum('LTR','RTL')	NO	
+
+system_languages	default	enum('0','1')	NO	
+
+system_languages	enabled	enum('0','1')	NO	
+
+system_languages	language_order	int(10) unsigned	NO	1	
+system_options	option_id	int(10) unsigned	NO	
+auto_increment
+system_options	option_name	varchar(128)	NO	
+
+system_options	option_value	text	NO	
+
+system_reactions	reaction_id	int(10) unsigned	NO	
+auto_increment
+system_reactions	reaction	varchar(32)	NO	
+
+system_reactions	title	varchar(32)	NO	
+
+system_reactions	color	varchar(128)	YES	NULL	
+system_reactions	image	varchar(256)	NO	
+
+system_reactions	reaction_order	int(10) unsigned	NO	1	
+system_reactions	enabled	enum('0','1')	NO	'1'	
+system_themes	theme_id	int(10) unsigned	NO	
+auto_increment
+system_themes	name	varchar(64)	NO	
+
+system_themes	default	enum('0','1')	NO	
+
+system_themes	enabled	enum('0','1')	NO	
+
+users	user_id	int(10) unsigned	NO	
+auto_increment
+users	user_master_account	int(10)	NO	0	
+users	user_group	tinyint(10) unsigned	NO	3	
+users	user_group_custom	int(11)	NO	0	
+users	user_demo	enum('0','1')	NO	'0'	
+users	user_name	varchar(64)	NO	
+
+users	user_email	varchar(64)	NO	
+
+users	user_email_verified	enum('0','1')	NO	'0'	
+users	user_email_verification_code	varchar(64)	YES	NULL	
+users	user_phone	varchar(64)	YES	NULL	
+users	user_phone_verified	enum('0','1')	NO	'0'	
+users	user_phone_verification_code	varchar(64)	YES	NULL	
+users	user_password	varchar(64)	NO	
+
+users	user_two_factor_enabled	enum('0','1')	NO	'0'	
+users	user_two_factor_type	enum('email','sms','google')	YES	NULL	
+users	user_two_factor_key	varchar(64)	YES	NULL	
+users	user_two_factor_gsecret	varchar(64)	YES	NULL	
+users	user_activated	enum('0','1')	NO	'0'	
+users	user_reseted	enum('0','1')	NO	'0'	
+users	user_reset_key	varchar(64)	YES	NULL	
+users	user_subscribed	enum('0','1')	NO	'0'	
+users	user_package	int(10) unsigned	YES	NULL	
+users	user_package_videos_categories	text	YES	NULL	
+users	user_package_blogs_categories	text	YES	NULL	
+users	user_subscription_date	datetime	YES	NULL	
+users	user_boosted_posts	int(10) unsigned	NO	0	
+users	user_boosted_pages	int(10) unsigned	NO	0	
+users	user_started	enum('0','1')	NO	'0'	
+users	user_verified	enum('0','1')	NO	'0'	
+users	user_banned	enum('0','1')	NO	'0'	
+users	user_banned_message	text	YES	NULL	
+users	user_live_requests_counter	int(10) unsigned	NO	0	
+users	user_live_requests_lastid	int(10) unsigned	NO	0	
+users	user_live_messages_counter	int(10) unsigned	NO	0	
+users	user_live_messages_lastid	int(10) unsigned	NO	0	
+users	user_live_notifications_counter	int(10) unsigned	NO	0	
+users	user_live_notifications_lastid	int(10) unsigned	NO	0	
+users	user_latitude	varchar(256)	NO	'0'	
+users	user_longitude	varchar(256)	NO	'0'	
+users	user_location_updated	datetime	YES	NULL	
+users	user_firstname	varchar(256)	NO	
+
+users	user_lastname	varchar(256)	YES	NULL	
+users	user_gender	int(10) unsigned	YES	NULL	
+users	user_picture	varchar(255)	YES	NULL	
+users	user_picture_id	int(10) unsigned	YES	NULL	
+users	user_cover	varchar(256)	YES	NULL	
+users	user_cover_id	int(10) unsigned	YES	NULL	
+users	user_cover_position	varchar(256)	YES	NULL	
+users	user_album_pictures	int(10) unsigned	YES	NULL	
+users	user_album_covers	int(10) unsigned	YES	NULL	
+users	user_album_timeline	int(10) unsigned	YES	NULL	
+users	user_pinned_post	int(10) unsigned	YES	NULL	
+users	user_registered	datetime	YES	NULL	
+users	user_last_seen	timestamp	NO	current_timestamp()	
+users	user_first_failed_login	datetime	YES	NULL	
+users	user_failed_login_ip	varchar(64)	YES	NULL	
+users	user_failed_login_count	int(10) unsigned	NO	0	
+users	user_country	int(10) unsigned	YES	NULL	
+users	user_birthdate	date	YES	NULL	
+users	user_relationship	varchar(256)	YES	NULL	
+users	user_biography	text	YES	NULL	
+users	user_website	varchar(256)	YES	NULL	
+users	user_work_title	varchar(256)	YES	NULL	
+users	user_work_place	varchar(256)	YES	NULL	
+users	user_work_url	varchar(256)	YES	NULL	
+users	user_current_city	varchar(256)	YES	NULL	
+users	user_hometown	varchar(256)	YES	NULL	
+users	user_edu_major	varchar(256)	YES	NULL	
+users	user_edu_school	varchar(256)	YES	NULL	
+users	user_edu_class	varchar(256)	YES	NULL	
+users	user_social_facebook	varchar(256)	YES	NULL	
+users	user_social_twitter	varchar(256)	YES	NULL	
+users	user_social_youtube	varchar(256)	YES	NULL	
+users	user_social_instagram	varchar(256)	YES	NULL	
+users	user_social_twitch	varchar(256)	YES	NULL	
+users	user_social_linkedin	varchar(256)	YES	NULL	
+users	user_social_vkontakte	varchar(256)	YES	NULL	
+users	user_profile_background	varchar(256)	YES	NULL	
+users	user_chat_enabled	enum('0','1')	NO	'1'	
+users	user_newsletter_enabled	enum('0','1')	NO	'1'	
+users	user_tips_enabled	enum('0','1')	NO	'1'	
+users	user_privacy_poke	enum('me','friends','public')	NO	'public'	
+users	user_privacy_gifts	enum('me','friends','public')	NO	'public'	
+users	user_privacy_wall	enum('me','friends','public')	NO	'friends'	
+users	user_privacy_gender	enum('me','friends','public')	NO	'public'	
+users	user_privacy_birthdate	enum('me','friends','public')	NO	'public'	
+users	user_privacy_relationship	enum('me','friends','public')	NO	'public'	
+users	user_privacy_basic	enum('me','friends','public')	NO	'public'	
+users	user_privacy_work	enum('me','friends','public')	NO	'public'	
+users	user_privacy_location	enum('me','friends','public')	NO	'public'	
+users	user_privacy_education	enum('me','friends','public')	NO	'public'	
+users	user_privacy_other	enum('me','friends','public')	NO	'public'	
+users	user_privacy_friends	enum('me','friends','public')	NO	'public'	
+users	user_privacy_followers	enum('me','friends','public')	NO	'public'	
+users	user_privacy_photos	enum('me','friends','public')	NO	'public'	
+users	user_privacy_pages	enum('me','friends','public')	NO	'public'	
+users	user_privacy_groups	enum('me','friends','public')	NO	'public'	
+users	user_privacy_events	enum('me','friends','public')	NO	'public'	
+users	user_privacy_subscriptions	enum('me','friends','public')	NO	'public'	
+users	email_post_likes	enum('0','1')	NO	'1'	
+users	email_post_comments	enum('0','1')	NO	'1'	
+users	email_post_shares	enum('0','1')	NO	'1'	
+users	email_wall_posts	enum('0','1')	NO	'1'	
+users	email_mentions	enum('0','1')	NO	'1'	
+users	email_profile_visits	enum('0','1')	NO	'1'	
+users	email_friend_requests	enum('0','1')	NO	'1'	
+users	email_user_verification	enum('0','1')	NO	'1'	
+users	email_user_post_approval	enum('0','1')	NO	'1'	
+users	email_admin_verifications	enum('0','1')	NO	'1'	
+users	email_admin_post_approval	enum('0','1')	NO	'1'	
+users	facebook_connected	enum('0','1')	NO	'0'	
+users	facebook_id	varchar(128)	YES	NULL	
+users	google_connected	enum('0','1')	NO	'0'	
+users	google_id	varchar(128)	YES	NULL	
+users	twitter_connected	enum('0','1')	NO	'0'	
+users	twitter_id	varchar(128)	YES	NULL	
+users	instagram_connected	enum('0','1')	NO	'0'	
+users	instagram_id	varchar(128)	YES	NULL	
+users	linkedin_connected	enum('0','1')	NO	'0'	
+users	linkedin_id	varchar(128)	YES	NULL	
+users	vkontakte_connected	enum('0','1')	NO	'0'	
+users	vkontakte_id	varchar(128)	YES	NULL	
+users	wordpress_connected	enum('0','1')	NO	'0'	
+users	wordpress_id	varchar(128)	YES	NULL	
+users	sngine_connected	enum('0','1')	NO	'0'	
+users	sngine_id	varchar(128)	YES	NULL	
+users	user_referrer_id	int(10)	YES	NULL	
+users	points_earned	enum('0','1')	NO	'0'	
+users	user_points	float	NO	0	
+users	user_wallet_balance	float	NO	0	
+users	user_affiliate_balance	float	NO	0	
+users	user_market_balance	float	NO	0	
+users	user_funding_balance	float	NO	0	
+users	user_monetization_enabled	enum('0','1')	NO	'0'	
+users	user_monetization_chat_price	float	NO	0	
+users	user_monetization_call_price	float	NO	0	
+users	user_monetization_min_price	float	NO	0	
+users	user_monetization_plans	int(10) unsigned	NO	0	
+users	user_monetization_balance	float	NO	0	
+users	chat_sound	enum('0','1')	NO	'1'	
+users	notifications_sound	enum('0','1')	NO	'1'	
+users	onesignal_user_id	varchar(100)	YES	NULL	
+users	user_language	varchar(16)	YES	'en_us'	
+users	user_free_tried	enum('0','1')	NO	'0'	
+users	coinbase_hash	varchar(128)	YES	NULL	
+users	coinbase_code	varchar(128)	YES	NULL	
+users_accounts	id	int(10) unsigned	NO	
+auto_increment
+users_accounts	user_id	int(10) unsigned	NO	
+
+users_accounts	account_id	int(10) unsigned	NO	
+
+users_addresses	address_id	int(10) unsigned	NO	
+auto_increment
+users_addresses	user_id	int(10) unsigned	NO	
+
+users_addresses	address_title	varchar(256)	NO	
+
+users_addresses	address_country	varchar(256)	NO	
+
+users_addresses	address_city	varchar(256)	NO	
+
+users_addresses	address_zip_code	varchar(256)	NO	
+
+users_addresses	address_phone	varchar(256)	NO	
+
+users_addresses	address_details	text	NO	
+
+users_affiliates	id	int(10) unsigned	NO	
+auto_increment
+users_affiliates	referrer_id	int(10) unsigned	NO	
+
+users_affiliates	referee_id	int(10) unsigned	NO	
+
+users_blocks	id	int(10) unsigned	NO	
+auto_increment
+users_blocks	user_id	int(10) unsigned	NO	
+
+users_blocks	blocked_id	int(10) unsigned	NO	
+
+users_gifts	id	int(10) unsigned	NO	
+auto_increment
+users_gifts	from_user_id	int(10) unsigned	NO	
+
+users_gifts	to_user_id	int(10) unsigned	NO	
+
+users_gifts	gift_id	int(10) unsigned	NO	
+
+users_groups	user_group_id	int(10) unsigned	NO	
+auto_increment
+users_groups	user_group_title	varchar(255)	NO	
+
+users_groups	permissions_group_id	int(10) unsigned	NO	
+
+users_invitations	id	int(10) unsigned	NO	
+auto_increment
+users_invitations	user_id	int(10) unsigned	NO	
+
+users_invitations	email_phone	varchar(64)	NO	
+
+users_invitations	invitation_date	datetime	NO	
+
+users_pokes	id	int(10) unsigned	NO	
+auto_increment
+users_pokes	user_id	int(10) unsigned	NO	
+
+users_pokes	poked_id	int(10) unsigned	NO	
+
+users_recurring_payments	id	int(10) unsigned	NO	
+auto_increment
+users_recurring_payments	user_id	int(10) unsigned	NO	
+
+users_recurring_payments	payment_gateway	varchar(256)	NO	
+
+users_recurring_payments	handle	varchar(256)	NO	
+
+users_recurring_payments	handle_id	int(10) unsigned	NO	
+
+users_recurring_payments	subscription_id	varchar(256)	NO	
+
+users_recurring_payments	time	datetime	NO	
+
+users_searches	log_id	int(10) unsigned	NO	
+auto_increment
+users_searches	user_id	int(10) unsigned	NO	
+
+users_searches	node_id	int(10) unsigned	NO	
+
+users_searches	node_type	varchar(32)	NO	
+
+users_searches	time	datetime	YES	NULL	
+users_sessions	session_id	int(10) unsigned	NO	
+auto_increment
+users_sessions	session_token	varchar(64)	NO	
+
+users_sessions	session_date	datetime	NO	
+
+users_sessions	session_type	enum('W','A','I')	NO	'W'	
+users_sessions	user_id	int(10) unsigned	NO	
+
+users_sessions	user_ip	varchar(64)	NO	
+
+users_sessions	user_browser	varchar(64)	YES	NULL	
+users_sessions	user_os	varchar(64)	NO	
+
+users_sessions	user_os_version	varchar(64)	YES	NULL	
+users_sessions	user_device_name	varchar(64)	YES	NULL	
+users_sms	id	int(10) unsigned	NO	
+auto_increment
+users_sms	phone	varchar(256)	NO	
+
+users_sms	insert_date	datetime	NO	
+
+users_top_friends	id	int(10) unsigned	NO	
+auto_increment
+users_top_friends	user_id	int(10) unsigned	NO	
+
+users_top_friends	friend_id	int(10) unsigned	NO	
+
+verification_requests	request_id	int(10) unsigned	NO	
+auto_increment
+verification_requests	node_id	int(10) unsigned	NO	
+
+verification_requests	node_type	varchar(32)	NO	
+
+verification_requests	photo	varchar(256)	YES	NULL	
+verification_requests	passport	varchar(256)	YES	NULL	
+verification_requests	business_website	text	YES	NULL	
+verification_requests	business_address	text	YES	NULL	
+verification_requests	message	text	YES	NULL	
+verification_requests	time	datetime	NO	
+
+verification_requests	status	tinyint(1)	NO	
+
+wallet_payments	payment_id	int(10)	NO	
+auto_increment
+wallet_payments	user_id	int(10) unsigned	NO	
+
+wallet_payments	amount	varchar(32)	NO	
+
+wallet_payments	method	varchar(64)	NO	
+
+wallet_payments	method_value	text	NO	
+
+wallet_payments	time	datetime	NO	
+
+wallet_payments	status	tinyint(1)	NO	
+
+wallet_transactions	transaction_id	int(10)	NO	
+auto_increment
+wallet_transactions	user_id	int(10) unsigned	NO	
+
+wallet_transactions	node_type	varchar(32)	NO	
+
+wallet_transactions	node_id	int(10) unsigned	YES	NULL	
+wallet_transactions	amount	varchar(32)	NO	
+
+wallet_transactions	type	enum('in','out')	NO	
+
+wallet_transactions	date	datetime	NO	
+
+widgets	widget_id	int(10) unsigned	NO	
+auto_increment
+widgets	title	varchar(256)	NO	
+
+widgets	place	varchar(32)	NO	
+
+widgets	place_order	int(10) unsigned	NO	1	
+widgets	code	mediumtext	NO	
+
