@@ -196,28 +196,15 @@ const follow = async (req, res) => {
         followerRows[0].user_name
       : "Someone";
 
-    // ✅ Create follower gained notification
+    // ✅ Create follower gained notification (includes Socket.IO emit and FCM push)
     await NotificationService.createNotification(
       followingId,
       viewerId,
       "follower_gained",
-      null,
+      `${followerName} started following you`,
       "profile",
       viewerId,
       `/profile/${viewerId}`,
-    );
-
-    // 📲 Send FCM push notification
-    await NotificationService.sendPushNotification(
-      followingId,
-      followerName,
-      "New Follower",
-      `${followerName} started following you`,
-      {
-        notification_type: "follower_gained",
-        follower_id: viewerId,
-        node_url: `/profile/${viewerId}`,
-      },
     );
 
     res.status(201).json({ success: true, message: "Now following" });

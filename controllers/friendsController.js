@@ -66,11 +66,21 @@ async function getUserProfile(req, res) {
 
     // ✅ Create profile visit notification if viewing someone else's profile
     if (parseInt(userId) !== viewerId) {
+      // Get viewer name for notification
+      const [viewerRows] = await db.query(
+        `SELECT user_firstname, user_lastname, user_name FROM users WHERE user_id = ?`,
+        [viewerId],
+      );
+      const viewerName = viewerRows[0]
+        ? `${viewerRows[0].user_firstname || ""} ${viewerRows[0].user_lastname || ""}`.trim() ||
+          viewerRows[0].user_name
+        : "Someone";
+
       await NotificationService.createNotification(
         parseInt(userId),
         viewerId,
         "profile_visit",
-        null,
+        `${viewerName} viewed your profile`,
         "profile",
         viewerId,
         `/profile/${viewerId}`,
@@ -196,7 +206,7 @@ async function sendFriendRequest(req, res) {
       requestId: result.insertId,
     });
 
-    // Get sender details for push notification
+    // Get sender details for notification
     const [senderRows] = await db.query(
       `SELECT user_firstname, user_lastname, user_name FROM users WHERE user_id = ?`,
       [user_one_id],
@@ -206,29 +216,15 @@ async function sendFriendRequest(req, res) {
         senderRows[0].user_name
       : "Someone";
 
-    // ✅ Create friend request notification
+    // ✅ Create friend request notification (includes Socket.IO emit and FCM push)
     await NotificationService.createNotification(
       user_two_id,
       user_one_id,
       "friend_request",
-      null,
+      `${senderName} sent you a friend request`,
       "friend_request",
       result.insertId,
       `/friends/requests`,
-    );
-
-    // 📲 Send FCM push notification
-    await NotificationService.sendPushNotification(
-      user_two_id,
-      senderName,
-      "Friend Request",
-      `${senderName} sent you a friend request`,
-      {
-        notification_type: "friend_request",
-        sender_id: user_one_id,
-        request_id: result.insertId,
-        node_url: `/friends/requests`,
-      },
     );
 
     res
@@ -282,29 +278,15 @@ async function updateFriendStatus(req, res) {
           recipientRows[0].user_name
         : "Someone";
 
-      // ✅ Create friend accepted notification
+      // ✅ Create friend accepted notification (includes Socket.IO emit and FCM push)
       await NotificationService.createNotification(
         friendRequest.user_one_id,
         req.user.id,
         "friend_accepted",
-        null,
+        `${recipientName} accepted your friend request`,
         "friend_request",
         id,
         `/profile/${req.user.id}`,
-      );
-
-      // 📲 Send FCM push notification
-      await NotificationService.sendPushNotification(
-        friendRequest.user_one_id,
-        recipientName,
-        "Friend Request Accepted",
-        `${recipientName} accepted your friend request`,
-        {
-          notification_type: "friend_accepted",
-          user_id: req.user.id,
-          request_id: id,
-          node_url: `/profile/${req.user.id}`,
-        },
       );
 
       message = "Friend request accepted";

@@ -6,8 +6,26 @@
 const db = require("../config/db");
 
 class NotificationService {
+  static getIO() {
+    try {
+      return require("../index").io;
+    } catch (error) {
+      console.warn("⚠️ Socket.IO not available in NotificationService");
+      return null;
+    }
+  }
+
+  static getFCMService() {
+    try {
+      return require("./fcmService");
+    } catch (error) {
+      console.warn("⚠️ FCMService not available in NotificationService");
+      return null;
+    }
+  }
+
   /**
-   * Create a notification record
+   * Create a notification record and send real-time alerts
    * @param {number} toUserId - User receiving the notification
    * @param {number} fromUserId - User triggering the notification
    * @param {string} action - Action type (profile_visit, message, etc)
@@ -37,28 +55,102 @@ class NotificationService {
         VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), '0')
       `;
 
+      const defaultMsg = message || this.getDefaultMessage(action);
+
       const [result] = await db.query(query, [
         toUserId,
         fromUserId,
         action,
-        message || this.getDefaultMessage(action),
+        defaultMsg,
         nodeType,
         nodeId,
         nodeUrl,
       ]);
 
+      const notificationId = result.insertId;
+
       console.log(`✅ Notification created:`, {
-        notification_id: result.insertId,
+        notification_id: notificationId,
         to_user: toUserId,
         from_user: fromUserId,
         action,
       });
 
-      return result.insertId;
+      // 🔔 Emit real-time Socket.IO event to recipient
+      const io = this.getIO();
+      if (io) {
+        try {
+          io.to(`user_${toUserId}`).emit("notification", {
+            notification_id: notificationId,
+            to_user_id: toUserId,
+            from_user_id: fromUserId,
+            action,
+            message: defaultMsg,
+            node_type: nodeType,
+            node_id: nodeId,
+            node_url: nodeUrl,
+            time: new Date(),
+          });
+          console.log(`📡 Socket.IO notification emitted to user ${toUserId}`);
+        } catch (ioError) {
+          console.warn(`⚠️ Failed to emit Socket.IO notification:`, ioError);
+        }
+      }
+
+      // 📲 Send FCM push notification
+      try {
+        const fcmService = new (this.getFCMService())();
+        const [senderRows] = await db.query(
+          `SELECT user_firstname, user_lastname, user_name FROM users WHERE user_id = ? LIMIT 1`,
+          [fromUserId],
+        );
+
+        const senderName = senderRows[0]
+          ? `${senderRows[0].user_firstname || ""} ${senderRows[0].user_lastname || ""}`.trim() ||
+            senderRows[0].user_name
+          : "Someone";
+
+        await fcmService.sendIncomingCallPush(toUserId, {
+          title: this.getTitleForAction(action, senderName),
+          body: defaultMsg,
+          data: {
+            notification_type: action,
+            notification_id: notificationId,
+            sender_id: fromUserId,
+            sender_name: senderName,
+            node_type: nodeType,
+            node_id: nodeId,
+            node_url: nodeUrl,
+          },
+        });
+        console.log(`📲 FCM push sent to user ${toUserId}`);
+      } catch (fcmError) {
+        console.warn(`⚠️ Failed to send FCM notification:`, fcmError.message);
+      }
+
+      return notificationId;
     } catch (error) {
       console.error("❌ Error creating notification:", error);
       return null;
     }
+  }
+
+  /**
+   * Get title for notification based on action type
+   */
+  static getTitleForAction(action, senderName) {
+    const titles = {
+      message_received: "New Message",
+      wallet_transfer: "Money Received",
+      follower_gained: "New Follower",
+      friend_request: "Friend Request",
+      friend_accepted: "Friend Request Accepted",
+      profile_visit: "Profile Viewed",
+      post_liked: "Post Liked",
+      post_commented: "New Comment",
+      reaction: "Post Reaction",
+    };
+    return titles[action] || "New Notification";
   }
 
   /**
@@ -183,76 +275,6 @@ class NotificationService {
       return result.affectedRows > 0;
     } catch (error) {
       console.error("❌ Error deleting notification:", error);
-      return false;
-    }
-  }
-
-  /**
-   * Send FCM push notification to user
-   * @param {number} userId - User to send push to
-   * @param {string} senderName - Name of person sending notification
-   * @param {string} title - Push notification title
-   * @param {string} message - Push notification message
-   * @param {object} data - Additional data to send with notification
-   */
-  static async sendPushNotification(
-    userId,
-    senderName,
-    title,
-    message,
-    data = {},
-  ) {
-    try {
-      // Get user's FCM token from database
-      const [rows] = await db.query(
-        `SELECT fcm_token FROM users WHERE user_id = ? AND fcm_token IS NOT NULL`,
-        [userId],
-      );
-
-      if (!rows.length) {
-        console.log(`ℹ️ No FCM token for user ${userId}, skipping push`);
-        return false;
-      }
-
-      const fcmToken = rows[0].fcm_token;
-      const admin = require("firebase-admin");
-
-      // Initialize Firebase Admin if not already done
-      if (!admin.apps.length) {
-        const serviceAccount = require("../utils/pipiaf.json");
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-        });
-      }
-
-      const payload = {
-        notification: {
-          title: title || senderName,
-          body: message,
-        },
-        data: {
-          sender_name: senderName,
-          timestamp: new Date().toISOString(),
-          ...data,
-        },
-      };
-
-      // Send to FCM
-      const response = await admin.messaging().send({
-        token: fcmToken,
-        ...payload,
-      });
-
-      console.log(`✅ FCM notification sent to user ${userId}:`, {
-        response,
-        fcm_token: fcmToken.substring(0, 20) + "...",
-      });
-      return true;
-    } catch (error) {
-      console.error(
-        `❌ Error sending FCM notification to user ${userId}:`,
-        error,
-      );
       return false;
     }
   }

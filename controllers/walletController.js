@@ -92,7 +92,7 @@ exports.sendMoney = async (req, res) => {
     // Transfer money
     await WalletService.transfer(senderId, recipientId, amount);
 
-    // ✅ Create notification for recipient
+    // ✅ Create notification for recipient (includes Socket.IO emit and FCM push)
     await NotificationService.createNotification(
       recipientId,
       senderId,
@@ -101,21 +101,6 @@ exports.sendMoney = async (req, res) => {
       "wallet",
       senderId,
       `/wallet`,
-    );
-
-    // 📲 Send FCM push notification
-    await NotificationService.sendPushNotification(
-      recipientId,
-      senderName,
-      "Money Received",
-      `${senderName} sent you ₦${Number(amount).toFixed(2)}`,
-      {
-        notification_type: "wallet_transfer",
-        amount: Number(amount).toFixed(2),
-        currency: "NGN",
-        sender_id: senderId,
-        node_url: "/wallet",
-      },
     );
 
     res.json({ message: "Transfer successful" });

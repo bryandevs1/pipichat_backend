@@ -547,11 +547,23 @@ class ChatController {
 
       // ✅ Create notifications for other users in the conversation
       for (const otherUser of otherUsers) {
+        // Get sender details for notification
+        const [senderRows] = await db.query(
+          `SELECT user_firstname, user_lastname, user_name FROM users WHERE user_id = ?`,
+          [user_id],
+        );
+        const senderName = senderRows[0]
+          ? `${senderRows[0].user_firstname || ""} ${senderRows[0].user_lastname || ""}`.trim() ||
+            senderRows[0].user_name
+          : "Someone";
+
         await NotificationService.createNotification(
           otherUser.user_id,
           user_id,
           "message_received",
-          null,
+          messageData.message
+            ? `${senderName}: ${messageData.message.substring(0, 50)}`
+            : `${senderName} sent a message`,
           "message",
           messageId,
           `/messages/${conversation_id}`,
