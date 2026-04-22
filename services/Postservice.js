@@ -170,8 +170,8 @@ class PostService {
           p.user_type AS author_type,
           CASE 
             WHEN p.user_type = 'user' AND EXISTS(
-              SELECT 1 FROM memberships 
-              WHERE user_id = u.user_id AND status = 'active' AND expiry_date > NOW()
+              SELECT 1 FROM packages_payments 
+              WHERE user_id = u.user_id
             ) THEN 1
             ELSE 0
           END AS author_has_active_membership,

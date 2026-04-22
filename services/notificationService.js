@@ -186,6 +186,76 @@ class NotificationService {
       return false;
     }
   }
+
+  /**
+   * Send FCM push notification to user
+   * @param {number} userId - User to send push to
+   * @param {string} senderName - Name of person sending notification
+   * @param {string} title - Push notification title
+   * @param {string} message - Push notification message
+   * @param {object} data - Additional data to send with notification
+   */
+  static async sendPushNotification(
+    userId,
+    senderName,
+    title,
+    message,
+    data = {},
+  ) {
+    try {
+      // Get user's FCM token from database
+      const [rows] = await db.query(
+        `SELECT fcm_token FROM users WHERE user_id = ? AND fcm_token IS NOT NULL`,
+        [userId],
+      );
+
+      if (!rows.length) {
+        console.log(`ℹ️ No FCM token for user ${userId}, skipping push`);
+        return false;
+      }
+
+      const fcmToken = rows[0].fcm_token;
+      const admin = require("firebase-admin");
+
+      // Initialize Firebase Admin if not already done
+      if (!admin.apps.length) {
+        const serviceAccount = require("../utils/pipiaf.json");
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+        });
+      }
+
+      const payload = {
+        notification: {
+          title: title || senderName,
+          body: message,
+        },
+        data: {
+          sender_name: senderName,
+          timestamp: new Date().toISOString(),
+          ...data,
+        },
+      };
+
+      // Send to FCM
+      const response = await admin.messaging().send({
+        token: fcmToken,
+        ...payload,
+      });
+
+      console.log(`✅ FCM notification sent to user ${userId}:`, {
+        response,
+        fcm_token: fcmToken.substring(0, 20) + "...",
+      });
+      return true;
+    } catch (error) {
+      console.error(
+        `❌ Error sending FCM notification to user ${userId}:`,
+        error,
+      );
+      return false;
+    }
+  }
 }
 
 module.exports = NotificationService;

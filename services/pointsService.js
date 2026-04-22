@@ -8,13 +8,14 @@ const POINTS_CONFIG = require("../utils/pointsConfig");
 
 class PointsService {
   /**
-   * Check if user is a pro/paid user (has active membership)
+   * Check if user is a pro/paid user (has active subscription)
    */
   static async isProUser(userId) {
     try {
       const [rows] = await db.query(
-        `SELECT 1 FROM memberships 
-         WHERE user_id = ? AND status = 'active' AND expiry_date > NOW()
+        `SELECT 1 FROM packages_payments pp
+         WHERE pp.user_id = ? AND pp.payment_date <= NOW()
+         ORDER BY pp.payment_date DESC
          LIMIT 1`,
         [userId],
       );

@@ -471,8 +471,8 @@ async function getUserProfile(userId, currentUserId) {
       u.user_last_seen,
       CASE 
         WHEN EXISTS(
-          SELECT 1 FROM memberships 
-          WHERE user_id = u.user_id AND status = 'active' AND expiry_date > NOW()
+          SELECT 1 FROM packages_payments 
+          WHERE user_id = u.user_id
         ) THEN 1
         ELSE 0
       END AS has_active_membership

@@ -1,4 +1,4 @@
-const Joi = require("joi");
+const db = require("../config/db");
 const {
   getFollowings,
   getFollowers,
@@ -185,6 +185,16 @@ const follow = async (req, res) => {
 
     await followUser(viewerId, followingId);
 
+    // Get follower's name for push notification
+    const [followerRows] = await db.query(
+      `SELECT user_firstname, user_lastname, user_name FROM users WHERE user_id = ?`,
+      [viewerId],
+    );
+    const followerName = followerRows[0]
+      ? `${followerRows[0].user_firstname || ""} ${followerRows[0].user_lastname || ""}`.trim() ||
+        followerRows[0].user_name
+      : "Someone";
+
     // ✅ Create follower gained notification
     await NotificationService.createNotification(
       followingId,
@@ -194,6 +204,19 @@ const follow = async (req, res) => {
       "profile",
       viewerId,
       `/profile/${viewerId}`,
+    );
+
+    // 📲 Send FCM push notification
+    await NotificationService.sendPushNotification(
+      followingId,
+      followerName,
+      "New Follower",
+      `${followerName} started following you`,
+      {
+        notification_type: "follower_gained",
+        follower_id: viewerId,
+        node_url: `/profile/${viewerId}`,
+      },
     );
 
     res.status(201).json({ success: true, message: "Now following" });

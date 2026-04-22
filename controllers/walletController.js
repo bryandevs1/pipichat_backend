@@ -103,6 +103,21 @@ exports.sendMoney = async (req, res) => {
       `/wallet`,
     );
 
+    // 📲 Send FCM push notification
+    await NotificationService.sendPushNotification(
+      recipientId,
+      senderName,
+      "Money Received",
+      `${senderName} sent you ₦${Number(amount).toFixed(2)}`,
+      {
+        notification_type: "wallet_transfer",
+        amount: Number(amount).toFixed(2),
+        currency: "NGN",
+        sender_id: senderId,
+        node_url: "/wallet",
+      },
+    );
+
     res.json({ message: "Transfer successful" });
   } catch (err) {
     res.status(400).json({ error: err.message });
