@@ -561,8 +561,8 @@ class ChatController {
           otherUser.user_id,
           user_id,
           "message_received",
-          messageData.message
-            ? `${senderName}: ${messageData.message.substring(0, 50)}`
+          message
+            ? `${senderName}: ${message.substring(0, 50)}`
             : `${senderName} sent a message`,
           "message",
           messageId,

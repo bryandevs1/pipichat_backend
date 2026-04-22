@@ -51,7 +51,7 @@ class NotificationService {
 
       const query = `
         INSERT INTO notifications 
-        (to_user_id, from_user_id, action, message, node_type, node_id, node_url, time, seen)
+        (to_user_id, from_user_id, action, message, node_type, notify_id, node_url, time, seen)
         VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), '0')
       `;
 
@@ -87,7 +87,7 @@ class NotificationService {
             action,
             message: defaultMsg,
             node_type: nodeType,
-            node_id: nodeId,
+            notify_id: nodeId,
             node_url: nodeUrl,
             time: new Date(),
           });
@@ -115,12 +115,12 @@ class NotificationService {
           body: defaultMsg,
           data: {
             notification_type: action,
-            notification_id: notificationId,
-            sender_id: fromUserId,
+            notification_id: String(notificationId),
+            sender_id: String(fromUserId),
             sender_name: senderName,
-            node_type: nodeType,
-            node_id: nodeId,
-            node_url: nodeUrl,
+            node_type: nodeType || "",
+            notify_id: String(nodeId || ""),
+            node_url: nodeUrl || "",
           },
         });
         console.log(`📲 FCM push sent to user ${toUserId}`);
