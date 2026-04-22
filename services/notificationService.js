@@ -10,7 +10,9 @@ class NotificationService {
     try {
       return require("../index").io;
     } catch (error) {
-      console.warn("⚠️ Socket.IO not available in NotificationService");
+      console.warn("⚠️ Socket.IO not available in NotificationService", {
+        message: error?.message,
+      });
       return null;
     }
   }
@@ -19,9 +21,15 @@ class NotificationService {
     try {
       return require("./fcmService");
     } catch (error) {
-      console.warn("⚠️ FCMService not available in NotificationService");
+      console.warn("⚠️ FCMService not available in NotificationService", {
+        message: error?.message,
+      });
       return null;
     }
+  }
+
+  static buildTraceId(action, fromUserId, toUserId) {
+    return `notif:${action}:${fromUserId}->${toUserId}:${Date.now()}`;
   }
 
   /**
@@ -43,11 +51,28 @@ class NotificationService {
     nodeId = null,
     nodeUrl = null,
   ) {
+    const traceId = this.buildTraceId(action, fromUserId, toUserId);
+
     try {
       if (!toUserId || !fromUserId) {
-        console.warn("⚠️ Notification: Missing toUserId or fromUserId");
+        console.warn("⚠️ Notification: Missing toUserId or fromUserId", {
+          traceId,
+          toUserId,
+          fromUserId,
+          action,
+        });
         return null;
       }
+
+      console.log("🔔 Notification pipeline started", {
+        traceId,
+        toUserId,
+        fromUserId,
+        action,
+        nodeType,
+        nodeId,
+        nodeUrl,
+      });
 
       const query = `
         INSERT INTO notifications 
@@ -70,6 +95,7 @@ class NotificationService {
       const notificationId = result.insertId;
 
       console.log(`✅ Notification created:`, {
+        traceId,
         notification_id: notificationId,
         to_user: toUserId,
         from_user: fromUserId,
@@ -91,15 +117,41 @@ class NotificationService {
             node_url: nodeUrl,
             time: new Date(),
           });
-          console.log(`📡 Socket.IO notification emitted to user ${toUserId}`);
+          console.log(`📡 Socket.IO notification emitted to user ${toUserId}`, {
+            traceId,
+          });
         } catch (ioError) {
-          console.warn(`⚠️ Failed to emit Socket.IO notification:`, ioError);
+          console.warn(`⚠️ Failed to emit Socket.IO notification:`, {
+            traceId,
+            message: ioError?.message,
+          });
         }
       }
 
       // 📲 Send FCM push notification
       try {
-        const fcmService = new (this.getFCMService())();
+        const fcmService = this.getFCMService();
+        if (
+          !fcmService ||
+          typeof fcmService.sendIncomingCallPush !== "function"
+        ) {
+          console.warn("⚠️ FCM service unavailable or invalid export", {
+            traceId,
+            hasService: !!fcmService,
+            hasSendMethod:
+              !!fcmService &&
+              typeof fcmService.sendIncomingCallPush === "function",
+          });
+          return notificationId;
+        }
+
+        console.log("📲 FCM stage started", {
+          traceId,
+          method: "sendIncomingCallPush",
+          toUserId,
+          action,
+        });
+
         const [senderRows] = await db.query(
           `SELECT user_firstname, user_lastname, user_name FROM users WHERE user_id = ? LIMIT 1`,
           [fromUserId],
@@ -110,7 +162,7 @@ class NotificationService {
             senderRows[0].user_name
           : "Someone";
 
-        await fcmService.sendIncomingCallPush(toUserId, {
+        const fcmResult = await fcmService.sendIncomingCallPush(toUserId, {
           title: this.getTitleForAction(action, senderName),
           body: defaultMsg,
           data: {
@@ -123,9 +175,21 @@ class NotificationService {
             node_url: nodeUrl || "",
           },
         });
-        console.log(`📲 FCM push sent to user ${toUserId}`);
+
+        console.log(`📲 FCM push stage completed for user ${toUserId}`, {
+          traceId,
+          delivered: !!fcmResult,
+          fcmResponse: fcmResult || null,
+        });
       } catch (fcmError) {
-        console.warn(`⚠️ Failed to send FCM notification:`, fcmError.message);
+        console.warn(`⚠️ Failed to send FCM notification:`, {
+          traceId,
+          message: fcmError?.message,
+          code: fcmError?.code,
+          codePrefix: fcmError?.codePrefix,
+          errorInfo: fcmError?.errorInfo,
+          stack: fcmError?.stack,
+        });
       }
 
       return notificationId;

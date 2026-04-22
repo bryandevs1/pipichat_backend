@@ -60,21 +60,32 @@ class FCMService {
 
   async getFCMTokenByUserId(userId) {
     try {
+      console.log("🔎 FCM token lookup started", { userId });
       const [rows] = await db.query(
         `SELECT fcm_token FROM users WHERE user_id = ? LIMIT 1`,
         [userId],
       );
 
       if (!rows.length) {
-        console.log(`⚠️ No FCM token found for user ${userId}`);
+        console.log(`⚠️ No user row found for FCM lookup`, { userId });
         return null;
       }
 
       const token = rows[0].fcm_token;
       if (!token || typeof token !== "string") {
-        console.log(`⚠️ Invalid FCM token for user ${userId}`);
+        console.log(`⚠️ Invalid FCM token for user ${userId}`, {
+          userId,
+          tokenType: typeof token,
+          hasToken: !!token,
+        });
         return null;
       }
+
+      console.log("✅ FCM token lookup success", {
+        userId,
+        tokenPreview: `${token.substring(0, 16)}...`,
+        tokenLength: token.length,
+      });
 
       return token;
     } catch (error) {
@@ -84,15 +95,23 @@ class FCMService {
   }
 
   async sendIncomingCallPush(userId, payload) {
-    console.log(`📞 Attempting to send incoming call push to user ${userId}`);
+    const traceId = `fcm:${userId}:${Date.now()}`;
+    console.log(`📞 Attempting to send incoming call push to user ${userId}`, {
+      traceId,
+      title: payload?.title,
+      hasBody: !!payload?.body,
+      dataKeys: Object.keys(payload?.data || {}),
+    });
 
     const token = await this.getFCMTokenByUserId(userId);
     if (!token) {
-      console.log(`⚠️ No FCM token found for user ${userId}`);
+      console.log(`⚠️ No FCM token found for user ${userId}`, { traceId });
       return null;
     }
 
-    console.log(`📱 FCM token found: ${token.substring(0, 30)}...`);
+    console.log(`📱 FCM token found: ${token.substring(0, 30)}...`, {
+      traceId,
+    });
 
     const normalizedData = Object.fromEntries(
       Object.entries(payload.data || {}).map(([key, value]) => [
@@ -100,6 +119,11 @@ class FCMService {
         String(value ?? ""),
       ]),
     );
+
+    console.log("🧱 FCM normalized data prepared", {
+      traceId,
+      normalizedData,
+    });
 
     const message = {
       token,
@@ -137,11 +161,26 @@ class FCMService {
     };
 
     try {
+      console.log("🚀 Sending FCM message", {
+        traceId,
+        tokenPreview: `${token.substring(0, 16)}...`,
+        androidChannel: message?.android?.notification?.channelId,
+      });
       const response = await admin.messaging().send(message);
-      console.log("✅ FCM message sent successfully:", response);
+      console.log("✅ FCM message sent successfully:", {
+        traceId,
+        response,
+      });
       return response;
     } catch (error) {
-      console.error("❌ FCM send failed:", error.message);
+      console.error("❌ FCM send failed:", {
+        traceId,
+        message: error?.message,
+        code: error?.code,
+        codePrefix: error?.codePrefix,
+        errorInfo: error?.errorInfo,
+        stack: error?.stack,
+      });
       return null;
     }
   }
