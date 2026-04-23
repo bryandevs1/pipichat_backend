@@ -17,7 +17,7 @@ const getFullUserProfileUrl = (pictureUrl) => {
   }
 
   // If it's a relative path, prepend the API base
-  return `${API_BASE}/${pictureUrl}`;
+  return `${API_BASE}${pictureUrl}`;
 };
 
 const getFullMediaUrl = (mediaUrl) => {
@@ -31,7 +31,7 @@ const getFullMediaUrl = (mediaUrl) => {
   }
 
   // If it's a relative path, prepend the API base
-  return `${API_BASE}/${mediaUrl}`;
+  return `${API_BASE} ${mediaUrl}`;
 };
 
 module.exports = {

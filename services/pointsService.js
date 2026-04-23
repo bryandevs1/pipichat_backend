@@ -1,10 +1,48 @@
 /**
  * Points/Coins Helper Service
- * Handles adding points, checking daily limits, and transactions
+ * Handles balances, daily limits, and source-table point tracking.
  */
 
 const db = require("../config/db");
 const POINTS_CONFIG = require("../utils/pointsConfig");
+
+const DAILY_POINT_SOURCES = {
+  post_created: {
+    table: "posts",
+    userColumn: "user_id",
+    idColumn: "post_id",
+    pointsColumn: "points_earned",
+  },
+  comment_created: {
+    table: "posts_comments",
+    userColumn: "user_id",
+    idColumn: "comment_id",
+    pointsColumn: "points_earned",
+  },
+  post_view: {
+    table: "posts_views",
+    userColumn: "user_id",
+    pointsColumn: null,
+  },
+  reaction: {
+    table: "posts_reactions",
+    userColumn: "user_id",
+    idColumn: "id",
+    pointsColumn: "points_earned",
+  },
+  comment_reaction: {
+    table: "posts_comments_reactions",
+    userColumn: "user_id",
+    idColumn: "id",
+    pointsColumn: "points_earned",
+  },
+  follower_gained: {
+    table: "followings",
+    userColumn: "following_id",
+    idColumn: "id",
+    pointsColumn: "points_earned",
+  },
+};
 
 class PointsService {
   /**
@@ -26,18 +64,109 @@ class PointsService {
     }
   }
 
+  static getSourceConfig(transactionType) {
+    return DAILY_POINT_SOURCES[transactionType] || null;
+  }
+
+  static async markSourceAsRewarded(
+    connection,
+    userId,
+    transactionType,
+    relatedNodeId,
+  ) {
+    const config = this.getSourceConfig(transactionType);
+    if (!config?.pointsColumn || relatedNodeId == null) {
+      return { tracked: false };
+    }
+
+    const [existingRows] = await connection.query(
+      `SELECT ${config.pointsColumn} AS points_earned
+       FROM ${config.table}
+       WHERE ${config.idColumn} = ? AND ${config.userColumn} = ?
+       LIMIT 1`,
+      [relatedNodeId, userId],
+    );
+
+    if (existingRows.length === 0) {
+      return { tracked: false, found: false };
+    }
+
+    if (String(existingRows[0].points_earned) === "1") {
+      return { tracked: true, alreadyRewarded: true };
+    }
+
+    const [updateResult] = await connection.query(
+      `UPDATE ${config.table}
+       SET ${config.pointsColumn} = '1'
+       WHERE ${config.idColumn} = ? AND ${config.userColumn} = ? AND ${config.pointsColumn} = '0'`,
+      [relatedNodeId, userId],
+    );
+
+    return {
+      tracked: true,
+      alreadyRewarded: updateResult.affectedRows === 0,
+      rewarded: updateResult.affectedRows > 0,
+    };
+  }
+
   /**
    * Get daily points earned by user (today)
    */
   static async getDailyPointsEarned(userId) {
     try {
       const [rows] = await db.query(
-        `SELECT COALESCE(SUM(points_earned), 0) as total
-         FROM users_points_transactions
-         WHERE user_id = ? AND DATE(transaction_date) = DATE(NOW())
-         AND transaction_type IN ('post_view', 'post_created', 'comment_created', 'reaction', 'follower', 'referral')`,
-        [userId],
+        `SELECT COALESCE(SUM(points_total), 0) AS total
+         FROM (
+           SELECT COALESCE(SUM(CASE WHEN points_earned = '1' THEN ? ELSE 0 END), 0) AS points_total
+           FROM posts
+           WHERE user_id = ? AND DATE(time) = CURDATE()
+
+           UNION ALL
+
+           SELECT COALESCE(SUM(CASE WHEN points_earned = '1' THEN ? ELSE 0 END), 0) AS points_total
+           FROM posts_comments
+           WHERE user_id = ? AND DATE(time) = CURDATE()
+
+           UNION ALL
+
+           SELECT COALESCE(COUNT(*) * ?, 0) AS points_total
+           FROM posts_views
+           WHERE user_id = ? AND DATE(view_date) = CURDATE()
+
+           UNION ALL
+
+           SELECT COALESCE(SUM(CASE WHEN points_earned = '1' THEN ? ELSE 0 END), 0) AS points_total
+           FROM posts_reactions
+           WHERE user_id = ? AND DATE(reaction_time) = CURDATE()
+
+           UNION ALL
+
+           SELECT COALESCE(SUM(CASE WHEN points_earned = '1' THEN ? ELSE 0 END), 0) AS points_total
+           FROM posts_comments_reactions
+           WHERE user_id = ? AND DATE(reaction_time) = CURDATE()
+
+           UNION ALL
+
+           SELECT COALESCE(SUM(CASE WHEN points_earned = '1' THEN ? ELSE 0 END), 0) AS points_total
+           FROM followings
+           WHERE following_id = ? AND DATE(time) = CURDATE()
+         ) AS daily_points`,
+        [
+          POINTS_CONFIG.ACTIVITIES.POST_CREATED,
+          userId,
+          POINTS_CONFIG.ACTIVITIES.COMMENT_CREATED,
+          userId,
+          POINTS_CONFIG.ACTIVITIES.POST_VIEWED,
+          userId,
+          POINTS_CONFIG.ACTIVITIES.REACTION_GIVEN,
+          userId,
+          POINTS_CONFIG.ACTIVITIES.REACTION_GIVEN,
+          userId,
+          POINTS_CONFIG.ACTIVITIES.FOLLOWER_GAINED,
+          userId,
+        ],
       );
+
       return Number(rows[0]?.total || 0);
     } catch (error) {
       console.error("❌ Error getting daily points:", error);
@@ -57,6 +186,7 @@ class PointsService {
 
       const alreadyEarned = await this.getDailyPointsEarned(userId);
       const remaining = dailyLimit - alreadyEarned;
+      const canEarn = remaining >= pointsToAdd;
 
       console.log(`📊 Points Daily Limit Check:`, {
         user_id: userId,
@@ -65,10 +195,10 @@ class PointsService {
         already_earned: alreadyEarned,
         remaining,
         requested: pointsToAdd,
-        can_earn: remaining > 0,
+        can_earn: canEarn,
       });
 
-      return remaining > 0;
+      return canEarn;
     } catch (error) {
       console.error("❌ Error checking daily points limit:", error);
       return false;
@@ -76,12 +206,7 @@ class PointsService {
   }
 
   /**
-   * Add points to user with transaction logging
-   * @param {number} userId - User ID
-   * @param {number} points - Points to add
-   * @param {string} transactionType - Type of transaction
-   * @param {number} relatedNodeId - ID of related post/comment/etc
-   * @param {string} description - Description
+   * Add points to user balance and mark the source row when available.
    */
   static async addPoints(
     userId,
@@ -96,28 +221,37 @@ class PointsService {
     try {
       if (!userId || points <= 0) {
         console.warn("⚠️ Invalid userId or points:", { userId, points });
+        await connection.rollback();
         return null;
       }
 
-      // Check daily limit
       const canEarn = await this.canEarnMorePointsToday(userId, points);
       if (!canEarn) {
         console.warn("⚠️ Daily points limit reached for user:", userId);
+        await connection.rollback();
         return null;
       }
 
-      // Add points to user
+      const sourceState = await this.markSourceAsRewarded(
+        connection,
+        userId,
+        transactionType,
+        relatedNodeId,
+      );
+
+      if (sourceState?.alreadyRewarded) {
+        await connection.rollback();
+        console.warn("⚠️ Points already rewarded for source event:", {
+          user_id: userId,
+          transaction_type: transactionType,
+          node_id: relatedNodeId,
+        });
+        return null;
+      }
+
       await connection.query(
         `UPDATE users SET user_points = user_points + ? WHERE user_id = ?`,
         [points, userId],
-      );
-
-      // Log transaction
-      const [result] = await connection.query(
-        `INSERT INTO users_points_transactions
-         (user_id, points_earned, transaction_type, node_id, description, transaction_date)
-         VALUES (?, ?, ?, ?, ?, NOW())`,
-        [userId, points, transactionType, relatedNodeId, description],
       );
 
       await connection.commit();
@@ -127,12 +261,14 @@ class PointsService {
         points,
         transaction_type: transactionType,
         node_id: relatedNodeId,
+        description,
       });
 
       return {
-        transaction_id: result.insertId,
         points_added: points,
         user_id: userId,
+        transaction_type: transactionType,
+        node_id: relatedNodeId,
       };
     } catch (error) {
       await connection.rollback();
@@ -144,7 +280,7 @@ class PointsService {
   }
 
   /**
-   * Deduct points from user
+   * Deduct points from user balance.
    */
   static async deductPoints(
     userId,
@@ -159,33 +295,24 @@ class PointsService {
     try {
       if (!userId || points <= 0) {
         console.warn("⚠️ Invalid userId or points:", { userId, points });
+        await connection.rollback();
         return null;
       }
 
-      // Check balance
       const [rows] = await connection.query(
-        `SELECT user_points FROM users WHERE user_id = ?`,
+        `SELECT user_points FROM users WHERE user_id = ? FOR UPDATE`,
         [userId],
       );
 
-      if (!rows[0] || rows[0].user_points < points) {
+      if (!rows[0] || Number(rows[0].user_points) < points) {
         await connection.rollback();
         console.warn("⚠️ Insufficient points for user:", userId);
         return null;
       }
 
-      // Deduct points
       await connection.query(
         `UPDATE users SET user_points = user_points - ? WHERE user_id = ?`,
         [points, userId],
-      );
-
-      // Log transaction
-      const [result] = await connection.query(
-        `INSERT INTO users_points_transactions
-         (user_id, points_earned, transaction_type, node_id, description, transaction_date)
-         VALUES (?, ?, ?, ?, ?, NOW())`,
-        [userId, -points, transactionType, relatedNodeId, description],
       );
 
       await connection.commit();
@@ -194,12 +321,15 @@ class PointsService {
         user_id: userId,
         points,
         transaction_type: transactionType,
+        node_id: relatedNodeId,
+        description,
       });
 
       return {
-        transaction_id: result.insertId,
         points_deducted: points,
         user_id: userId,
+        transaction_type: transactionType,
+        node_id: relatedNodeId,
       };
     } catch (error) {
       await connection.rollback();
@@ -222,7 +352,7 @@ class PointsService {
 
       if (!userRows[0]) return null;
 
-      const currentPoints = userRows[0].user_points;
+      const currentPoints = Number(userRows[0].user_points || 0);
       const dailyEarned = await this.getDailyPointsEarned(userId);
       const isProUser = await this.isProUser(userId);
       const dailyLimit = isProUser
