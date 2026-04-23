@@ -5,7 +5,7 @@ const rawBody = require("../middleware/rawBody");
 const db = require("../config/db");
 const NotificationService = require("../services/notificationService");
 const axios = require("axios");
-const crypto = require("crypto");
+const crypto = require("node:crypto");
 const { getFullUserProfileUrl } = require("../utils/urlNormalizer");
 
 const WALLET_FUNDING_CONFIG = {
@@ -196,7 +196,7 @@ exports.searchUsers = async (req, res) => {
 exports.recentTransactionUsers = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const limit = parseInt(req.query.limit) || 5;
+    const limit = Number.parseInt(req.query.limit) || 5;
 
     const [rows] = await db.query(
       `SELECT DISTINCT
@@ -294,7 +294,7 @@ exports.initializeWalletFunding = async (req, res) => {
   const userId = req.user.id;
   const { amount } = req.body;
 
-  const numAmount = parseFloat(amount);
+  const numAmount = Number.parseFloat(amount);
   if (!numAmount || numAmount < WALLET_FUNDING_CONFIG.min_amount) {
     return res.status(400).json({
       success: false,
@@ -428,11 +428,24 @@ exports.verifyWalletFunding = async (req, res) => {
     const ref = event.data.reference;
 
     const userId = metadata.user_id;
-    const baseAmount = parseFloat(metadata.base_amount || 0);
-    const fee = parseFloat(metadata.fee || 0);
+    const baseAmount = Number.parseFloat(metadata.base_amount || 0);
 
     if (!userId || !baseAmount) {
       console.error("Missing metadata", metadata);
+      return res.sendStatus(200);
+    }
+
+    const description = `Wallet funded via Paystack | Ref: ${ref}`;
+
+    const [existing] = await db.query(
+      `SELECT transaction_id FROM wallet_transactions 
+       WHERE user_id = ? AND node_type = 'recharge' AND description LIKE ? 
+       LIMIT 1`,
+      [userId, `%Ref: ${ref}%`],
+    );
+
+    if (existing.length > 0) {
+      console.log(`Webhook already processed for ref ${ref}`);
       return res.sendStatus(200);
     }
 
@@ -447,9 +460,9 @@ exports.verifyWalletFunding = async (req, res) => {
 
       await connection.query(
         `INSERT INTO wallet_transactions 
-         (user_id, node_type, amount, type, date, description, reference)
-         VALUES (?, 'recharge', ?, 'in', NOW(), 'Wallet funded via Paystack', ?)`,
-        [userId, baseAmount, ref],
+         (user_id, node_type, amount, type, date, description)
+         VALUES (?, 'recharge', ?, 'in', NOW(), ?)`,
+        [userId, baseAmount, description],
       );
 
       await NotificationService.createNotification(
@@ -506,7 +519,7 @@ exports.testCredit = async (req, res) => {
       [
         userId,
         amount,
-        `Wallet funded via Paystack (Test) – Ref: test_ref_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        `Wallet funded via Paystack (Test) – Ref: test_ref_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       ],
     );
 
@@ -561,17 +574,21 @@ exports.handlePaystackCallback = async (req, res) => {
     // 2. Extract metadata (same as before)
     const metadata = data.metadata || {};
     const userId = metadata.user_id;
-    const baseAmount = parseFloat(metadata.base_amount || 0);
+    const baseAmount = Number.parseFloat(metadata.base_amount || 0);
     const ref = data.reference;
 
     if (!userId || !baseAmount) {
       return res.redirect("https://pipiafrica.com/wallet?status=failed");
     }
 
+    const description = `Wallet funded via Paystack | Ref: ${ref}`;
+
     // 3. Check if already credited (idempotency)
     const [existing] = await db.query(
-      "SELECT * FROM wallet_transactions WHERE reference = ?",
-      [ref],
+      `SELECT transaction_id FROM wallet_transactions 
+       WHERE user_id = ? AND node_type = 'paystack' AND description LIKE ? 
+       LIMIT 1`,
+      [userId, `%Ref: ${ref}%`],
     );
 
     if (existing.length > 0) {
@@ -590,9 +607,9 @@ exports.handlePaystackCallback = async (req, res) => {
 
     await connection.query(
       `INSERT INTO wallet_transactions 
-       (user_id, node_type, amount, type, date, description, reference)
-       VALUES (?, 'paystack', ?, 'in', NOW(), 'Wallet funded via Paystack', ?)`,
-      [userId, baseAmount, ref],
+       (user_id, node_type, amount, type, date, description)
+       VALUES (?, 'paystack', ?, 'in', NOW(), ?)`,
+      [userId, baseAmount, description],
     );
 
     await NotificationService.createNotification(
