@@ -27,6 +27,81 @@ const calculateWalletFundingFee = (amount) => {
   return Math.min(rawFee, WALLET_FUNDING_CONFIG.max_fee);
 };
 
+const processWalletFundingCredit = async ({ userId, baseAmount, ref }) => {
+  const lockName = `wallet_funding_${ref}`;
+  const description = `Wallet funded via Paystack | Ref: ${ref}`;
+
+  const [lockRows] = await db.query("SELECT GET_LOCK(?, 10) AS lock_acquired", [
+    lockName,
+  ]);
+  const lockAcquired = Number(lockRows?.[0]?.lock_acquired) === 1;
+
+  if (!lockAcquired) {
+    console.warn("⚠️ Unable to acquire wallet funding lock", {
+      userId,
+      ref,
+      lockName,
+    });
+    return { credited: false, alreadyProcessed: true, locked: false };
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [existing] = await connection.query(
+      `SELECT transaction_id FROM wallet_transactions
+       WHERE user_id = ? AND node_type = 'recharge' AND description LIKE ?
+       LIMIT 1`,
+      [userId, `%Ref: ${ref}%`],
+    );
+
+    if (existing.length > 0) {
+      await connection.rollback();
+      return { credited: false, alreadyProcessed: true, locked: true };
+    }
+
+    await connection.query(
+      `UPDATE users SET user_wallet_balance = user_wallet_balance + ? WHERE user_id = ?`,
+      [baseAmount, userId],
+    );
+
+    await connection.query(
+      `INSERT INTO wallet_transactions
+       (user_id, node_type, amount, type, date, description)
+       VALUES (?, 'recharge', ?, 'in', NOW(), ?)`,
+      [userId, baseAmount, description],
+    );
+
+    await NotificationService.createNotification(
+      userId,
+      userId,
+      "wallet_payment",
+      `Your wallet was funded with ₦${Number(baseAmount).toFixed(2)}`,
+      "wallet",
+      userId,
+      "/wallet",
+    );
+
+    await connection.commit();
+    return { credited: true, alreadyProcessed: false, locked: true };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+    try {
+      await db.query("SELECT RELEASE_LOCK(?)", [lockName]);
+    } catch (releaseError) {
+      console.warn("⚠️ Failed to release wallet funding lock", {
+        ref,
+        message: releaseError?.message,
+      });
+    }
+  }
+};
+
 exports.getWalletFundingConfig = async (_req, res) => {
   return res.json({
     success: true,
@@ -435,55 +510,22 @@ exports.verifyWalletFunding = async (req, res) => {
       return res.sendStatus(200);
     }
 
-    const description = `Wallet funded via Paystack | Ref: ${ref}`;
-
-    const [existing] = await db.query(
-      `SELECT transaction_id FROM wallet_transactions 
-       WHERE user_id = ? AND node_type = 'recharge' AND description LIKE ? 
-       LIMIT 1`,
-      [userId, `%Ref: ${ref}%`],
-    );
-
-    if (existing.length > 0) {
-      console.log(`Webhook already processed for ref ${ref}`);
-      return res.sendStatus(200);
-    }
-
-    const connection = await db.getConnection();
     try {
-      await connection.beginTransaction();
-
-      await connection.query(
-        `UPDATE users SET user_wallet_balance = user_wallet_balance + ? WHERE user_id = ?`,
-        [baseAmount, userId],
-      );
-
-      await connection.query(
-        `INSERT INTO wallet_transactions 
-         (user_id, node_type, amount, type, date, description)
-         VALUES (?, 'recharge', ?, 'in', NOW(), ?)`,
-        [userId, baseAmount, description],
-      );
-
-      await NotificationService.createNotification(
+      const result = await processWalletFundingCredit({
         userId,
-        userId,
-        "wallet_payment",
-        `Your wallet was funded with ₦${Number(baseAmount).toFixed(2)}`,
-        "wallet",
-        userId,
-        "/wallet",
-      );
+        baseAmount,
+        ref,
+      });
 
-      await connection.commit();
-      console.log(
-        `SUCCESS: ₦${baseAmount} credited to user ${userId} | Ref: ${ref}`,
-      );
+      console.log("✅ Wallet funding webhook processed", {
+        userId,
+        ref,
+        baseAmount,
+        credited: result.credited,
+        alreadyProcessed: result.alreadyProcessed,
+      });
     } catch (err) {
-      await connection.rollback();
       console.error("DB Error in webhook:", err);
-    } finally {
-      connection.release();
     }
   }
 
@@ -581,55 +623,22 @@ exports.handlePaystackCallback = async (req, res) => {
       return res.redirect("https://pipiafrica.com/wallet?status=failed");
     }
 
-    const description = `Wallet funded via Paystack | Ref: ${ref}`;
-
-    // 3. Check if already credited (idempotency)
-    const [existing] = await db.query(
-      `SELECT transaction_id FROM wallet_transactions 
-       WHERE user_id = ? AND node_type = 'paystack' AND description LIKE ? 
-       LIMIT 1`,
-      [userId, `%Ref: ${ref}%`],
-    );
-
-    if (existing.length > 0) {
-      // Already credited → just redirect
-      return res.redirect("https://pipiafrica.com/wallet?status=success");
-    }
-
-    // 4. Credit the wallet (same logic as webhook)
-    const connection = await db.getConnection();
-    await connection.beginTransaction();
-
-    await connection.query(
-      "UPDATE users SET user_wallet_balance = user_wallet_balance + ? WHERE user_id = ?",
-      [baseAmount, userId],
-    );
-
-    await connection.query(
-      `INSERT INTO wallet_transactions 
-       (user_id, node_type, amount, type, date, description)
-       VALUES (?, 'paystack', ?, 'in', NOW(), ?)`,
-      [userId, baseAmount, description],
-    );
-
-    await NotificationService.createNotification(
+    // 3. Credit once (same logic as webhook; if webhook already processed, this no-ops)
+    const result = await processWalletFundingCredit({
       userId,
+      baseAmount,
+      ref,
+    });
+
+    console.log("✅ Wallet funding callback processed", {
       userId,
-      "wallet_payment",
-      `Your wallet was funded with ₦${Number(baseAmount).toFixed(2)}`,
-      "wallet",
-      userId,
-      "/wallet",
-    );
+      ref,
+      baseAmount,
+      credited: result.credited,
+      alreadyProcessed: result.alreadyProcessed,
+    });
 
-    await connection.commit();
-    connection.release();
-
-    console.log(
-      `CALLBACK SUCCESS: ₦${baseAmount} credited via callback | Ref: ${ref}`,
-    );
-
-    // 5. Redirect user to success page
+    // 4. Redirect user to success page
     res.redirect("https://pipiafrica.com/wallet?status=success");
   } catch (err) {
     console.error("Callback verification failed:", err.message);
