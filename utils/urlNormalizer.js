@@ -9,7 +9,7 @@
 const getFullUserProfileUrl = (pictureUrl) => {
   if (!pictureUrl) return null;
 
-  const API_BASE = process.env.API_BASE_URL || "https://server.pipiafrica.com";
+  const API_BASE = process.env.BASE_URL || "https://server.pipiafrica.com";
 
   // If it's already a full URL (http/https or Google Storage), return as is
   if (pictureUrl.startsWith("http://") || pictureUrl.startsWith("https://")) {
@@ -23,7 +23,7 @@ const getFullUserProfileUrl = (pictureUrl) => {
 const getFullMediaUrl = (mediaUrl) => {
   if (!mediaUrl) return null;
 
-  const API_BASE = process.env.API_BASE_URL || "https://server.pipiafrica.com";
+  const API_BASE = process.env.BASE_URL || "https://server.pipiafrica.com";
 
   // If it's already a full URL (http/https or Google Storage), return as is
   if (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://")) {
