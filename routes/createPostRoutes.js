@@ -1,6 +1,6 @@
-const express = require('express');
-const multer = require('multer');
-const PostController = require('../controllers/createPostController');
+const express = require("express");
+const multer = require("multer");
+const PostController = require("../controllers/createPostController");
 
 const router = express.Router();
 
@@ -8,20 +8,20 @@ const router = express.Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit
-  }
+    fileSize: 500 * 1024 * 1024, // 500MB limit
+  },
 });
 
 // Create posts with file upload support
-router.post('/:type', upload.any(), PostController.createPost);
+router.post("/:type", upload.any(), PostController.createPost);
 
 // Get post by ID
-router.get('/:postId', PostController.getPostById);
+router.get("/:postId", PostController.getPostById);
 
 // Update post
-router.put('/:postId', PostController.updatePost);
+router.put("/:postId", PostController.updatePost);
 
 // Delete post
-router.delete('/:postId', PostController.deletePost);
+router.delete("/:postId", PostController.deletePost);
 
 module.exports = router;

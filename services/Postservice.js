@@ -2051,10 +2051,10 @@ class PostService {
         [pollId],
       );
 
-      await connection.query(`UPDATE posts_polls SET votes = ? WHERE poll_id = ?`, [
-        totalVotes,
-        pollId,
-      ]);
+      await connection.query(
+        `UPDATE posts_polls SET votes = ? WHERE poll_id = ?`,
+        [totalVotes, pollId],
+      );
 
       // Get updated poll
       const [poll] = await connection.query(

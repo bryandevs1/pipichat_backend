@@ -111,8 +111,9 @@ const postController = {
       });
     } catch (error) {
       console.error("Create post error:", error);
-      const statusCode =
-        /required|invalid|must/i.test(error.message || "") ? 400 : 500;
+      const statusCode = /required|invalid|must/i.test(error.message || "")
+        ? 400
+        : 500;
       res.status(statusCode).json({ success: false, message: error.message });
     }
   },
@@ -1282,8 +1283,9 @@ const postController = {
       res.json(result);
     } catch (error) {
       console.error("Vote in poll error:", error);
-      const statusCode =
-        /invalid|not found|required/i.test(error.message || "") ? 400 : 500;
+      const statusCode = /invalid|not found|required/i.test(error.message || "")
+        ? 400
+        : 500;
       res.status(statusCode).json({
         success: false,
         message: error.message || "Failed to vote in poll",

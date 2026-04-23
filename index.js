@@ -69,7 +69,7 @@ socketController.initializeSocket();
 app.use(cors());
 app.use(
   express.json({
-    limit: "100mb",
+    limit: "500mb",
     verify: (req, res, buf) => {
       if (
         req.originalUrl.includes("/webhook") ||
@@ -81,7 +81,7 @@ app.use(
   }),
 );
 
-app.use(express.urlencoded({ limit: "100mb", extended: true }));
+app.use(express.urlencoded({ limit: "500mb", extended: true }));
 
 // Logging middleware
 app.use(async (req, res, next) => {
