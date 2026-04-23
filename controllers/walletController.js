@@ -8,6 +8,35 @@ const axios = require("axios");
 const crypto = require("crypto");
 const { getFullUserProfileUrl } = require("../utils/urlNormalizer");
 
+const WALLET_FUNDING_CONFIG = {
+  min_amount: 100,
+  max_amount: 5000000,
+  fee_rate: 0.015,
+  fixed_fee: 100,
+  max_fee: 2000,
+  currency: "NGN",
+};
+
+const calculateWalletFundingFee = (amount) => {
+  const numAmount = Number(amount) || 0;
+  if (numAmount <= 0) return 0;
+
+  const rawFee =
+    numAmount * WALLET_FUNDING_CONFIG.fee_rate +
+    WALLET_FUNDING_CONFIG.fixed_fee;
+  return Math.min(rawFee, WALLET_FUNDING_CONFIG.max_fee);
+};
+
+exports.getWalletFundingConfig = async (_req, res) => {
+  return res.json({
+    success: true,
+    data: {
+      ...WALLET_FUNDING_CONFIG,
+      fee_formula: `${WALLET_FUNDING_CONFIG.fee_rate * 100}% + ₦${WALLET_FUNDING_CONFIG.fixed_fee} (capped at ₦${WALLET_FUNDING_CONFIG.max_fee})`,
+    },
+  });
+};
+
 exports.initializePayment = async (req, res) => {
   try {
     const { userId, amount, email } = req.body;
@@ -266,16 +295,18 @@ exports.initializeWalletFunding = async (req, res) => {
   const { amount } = req.body;
 
   const numAmount = parseFloat(amount);
-  if (!numAmount || numAmount < 100) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Minimum amount is ₦100" });
+  if (!numAmount || numAmount < WALLET_FUNDING_CONFIG.min_amount) {
+    return res.status(400).json({
+      success: false,
+      message: `Minimum amount is ₦${WALLET_FUNDING_CONFIG.min_amount.toLocaleString()}`,
+    });
   }
 
-  if (numAmount > 5000000) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Maximum amount is ₦5,000,000" });
+  if (numAmount > WALLET_FUNDING_CONFIG.max_amount) {
+    return res.status(400).json({
+      success: false,
+      message: `Maximum amount is ₦${WALLET_FUNDING_CONFIG.max_amount.toLocaleString()}`,
+    });
   }
 
   try {
@@ -306,8 +337,8 @@ exports.initializeWalletFunding = async (req, res) => {
       });
     }
 
-    // YOUR FEE: 1.5% + ₦100, capped at ₦2000
-    const fee = Math.min(numAmount * 0.015 + 10, 2000);
+    // Fee config: 1.5% + ₦100, capped at ₦2000
+    const fee = calculateWalletFundingFee(numAmount);
     const totalAmount = numAmount + fee; // This is what user actually pays
 
     console.log("Initializing Paystack payment", {
@@ -354,6 +385,7 @@ exports.initializeWalletFunding = async (req, res) => {
       amount: numAmount, // original amount user wanted
       fee,
       total: totalAmount, // actual charged amount
+      config: WALLET_FUNDING_CONFIG,
       message: "Payment initialized successfully",
     });
   } catch (err) {
