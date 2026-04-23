@@ -2034,23 +2034,14 @@ class PostService {
         );
       }
 
-      // Recalculate vote counts to keep totals accurate
-      await connection.query(
-        `UPDATE posts_polls_options ppo
-         SET votes = (
-          SELECT COUNT(*)
-          FROM posts_polls_options_users ppou
-          WHERE ppou.option_id = ppo.option_id
-         )
-         WHERE ppo.poll_id = ?`,
-        [pollId],
-      );
 
+      // Count total votes across the entire poll
       const [[{ totalVotes }]] = await connection.query(
         `SELECT COUNT(*) AS totalVotes FROM posts_polls_options_users WHERE poll_id = ?`,
         [pollId],
       );
 
+      // Update the aggregate vote count on the poll row
       await connection.query(
         `UPDATE posts_polls SET votes = ? WHERE poll_id = ?`,
         [totalVotes, pollId],
