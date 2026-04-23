@@ -111,7 +111,9 @@ const postController = {
       });
     } catch (error) {
       console.error("Create post error:", error);
-      res.status(500).json({ success: false, message: error.message });
+      const statusCode =
+        /required|invalid|must/i.test(error.message || "") ? 400 : 500;
+      res.status(statusCode).json({ success: false, message: error.message });
     }
   },
 
@@ -1280,7 +1282,9 @@ const postController = {
       res.json(result);
     } catch (error) {
       console.error("Vote in poll error:", error);
-      res.status(500).json({
+      const statusCode =
+        /invalid|not found|required/i.test(error.message || "") ? 400 : 500;
+      res.status(statusCode).json({
         success: false,
         message: error.message || "Failed to vote in poll",
       });
@@ -1560,6 +1564,140 @@ const postController = {
         success: false,
         message: error.message || "Failed to share post",
       });
+    }
+  },
+
+  // ==================== BOOST POST ====================
+  boostPost: async (req, res) => {
+    const connection = await db.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const postId = parseInt(req.params.id, 10);
+      const userId = req.user?.id;
+
+      if (!userId) {
+        await connection.rollback();
+        return res
+          .status(401)
+          .json({ success: false, message: "Authentication required" });
+      }
+
+      if (!postId || Number.isNaN(postId)) {
+        await connection.rollback();
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid post ID" });
+      }
+
+      const [posts] = await connection.query(
+        `SELECT post_id, user_id, boosted FROM posts WHERE post_id = ? LIMIT 1`,
+        [postId],
+      );
+
+      if (!posts.length) {
+        await connection.rollback();
+        return res
+          .status(404)
+          .json({ success: false, message: "Post not found" });
+      }
+
+      if (String(posts[0].user_id) !== String(userId)) {
+        await connection.rollback();
+        return res.status(403).json({
+          success: false,
+          message: "You can only boost your own posts",
+        });
+      }
+
+      if (String(posts[0].boosted) === "1") {
+        await connection.rollback();
+        return res.status(200).json({
+          success: true,
+          already_boosted: true,
+          message: "Post is already boosted",
+        });
+      }
+
+      const [[userPackage]] = await connection.query(
+        `SELECT
+          pp.payment_id,
+          p.name,
+          p.boost_posts_enabled,
+          p.boost_posts,
+          p.boost_pages_enabled,
+          p.boost_pages
+         FROM packages_payments pp
+         JOIN packages p ON pp.package_name = p.name
+         WHERE pp.user_id = ?
+         ORDER BY pp.payment_date DESC
+         LIMIT 1`,
+        [userId],
+      );
+
+      if (!userPackage || String(userPackage.boost_posts_enabled) !== "1") {
+        await connection.rollback();
+        return res.status(403).json({
+          success: false,
+          code: "PRO_REQUIRED",
+          message: "You need an active Pro package to boost posts",
+        });
+      }
+
+      const [[userBalance]] = await connection.query(
+        `SELECT user_boosted_posts, user_boosted_pages FROM users WHERE user_id = ? LIMIT 1 FOR UPDATE`,
+        [userId],
+      );
+
+      const remainingPosts = Number(userBalance?.user_boosted_posts || 0);
+      const remainingPages = Number(userBalance?.user_boosted_pages || 0);
+
+      if (remainingPosts <= 0) {
+        await connection.rollback();
+        return res.status(403).json({
+          success: false,
+          code: "NO_BOOST_QUOTA",
+          message: "No boosted posts left",
+          data: {
+            remaining_boosted_posts: remainingPosts,
+            remaining_boosted_pages: remainingPages,
+          },
+        });
+      }
+
+      await connection.query(
+        `UPDATE posts SET boosted = '1', boosted_by = ? WHERE post_id = ?`,
+        [userId, postId],
+      );
+
+      await connection.query(
+        `UPDATE users
+         SET user_boosted_posts = GREATEST(user_boosted_posts - 1, 0)
+         WHERE user_id = ?`,
+        [userId],
+      );
+
+      await connection.commit();
+
+      return res.status(200).json({
+        success: true,
+        message: "Post has been boosted",
+        data: {
+          post_id: postId,
+          remaining_boosted_posts: Math.max(0, remainingPosts - 1),
+          remaining_boosted_pages: remainingPages,
+        },
+      });
+    } catch (error) {
+      await connection.rollback();
+      console.error("Boost post error:", error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Failed to boost post",
+      });
+    } finally {
+      connection.release();
     }
   },
 

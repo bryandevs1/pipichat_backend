@@ -1263,12 +1263,16 @@ class PostService {
   }
 
   static async handleJob(connection, postId, jobData, coverImage) {
-    let coverImagePath = null;
+    let coverImagePath = jobData?.cover_image || null;
     if (coverImage && coverImage[0]) {
       const coverFile = coverImage[0];
       coverFile.originalname = `job-cover-${Date.now()}-${coverFile.originalname}`;
       const coverData = await storageManager.upload(coverFile, "job-covers");
       coverImagePath = coverData.path;
+    }
+
+    if (!coverImagePath) {
+      throw new Error("Cover image is required for job posts");
     }
 
     const [result] = await connection.query(
@@ -1330,7 +1334,7 @@ class PostService {
   }
 
   static async handleFunding(connection, postId, fundingData, coverImage) {
-    let coverImagePath = null;
+    let coverImagePath = fundingData?.cover_image || null;
     if (coverImage && coverImage[0]) {
       const coverFile = coverImage[0];
       coverFile.originalname = `funding-cover-${Date.now()}-${coverFile.originalname}`;
@@ -1339,6 +1343,10 @@ class PostService {
         "funding-covers",
       );
       coverImagePath = coverData.path;
+    }
+
+    if (!coverImagePath) {
+      throw new Error("Cover image is required for funding posts");
     }
 
     const [result] = await connection.query(
@@ -1998,16 +2006,6 @@ class PostService {
     try {
       await connection.beginTransaction();
 
-      // Check if already voted
-      const [existingVote] = await connection.query(
-        `SELECT id FROM posts_polls_options_users WHERE user_id = ? AND poll_id = ?`,
-        [userId, pollId],
-      );
-
-      if (existingVote.length > 0) {
-        throw new Error("You have already voted in this poll");
-      }
-
       // Verify option belongs to poll
       const [option] = await connection.query(
         `SELECT option_id FROM posts_polls_options WHERE option_id = ? AND poll_id = ?`,
@@ -2018,17 +2016,45 @@ class PostService {
         throw new Error("Invalid poll option");
       }
 
-      // Insert vote
-      await connection.query(
-        `INSERT INTO posts_polls_options_users (user_id, poll_id, option_id) VALUES (?, ?, ?)`,
-        [userId, pollId, optionId],
+      // Check if user already voted and allow vote change
+      const [existingVote] = await connection.query(
+        `SELECT id, option_id FROM posts_polls_options_users WHERE user_id = ? AND poll_id = ? LIMIT 1`,
+        [userId, pollId],
       );
 
-      // Update poll votes count
+      if (existingVote.length > 0) {
+        await connection.query(
+          `UPDATE posts_polls_options_users SET option_id = ? WHERE id = ?`,
+          [optionId, existingVote[0].id],
+        );
+      } else {
+        await connection.query(
+          `INSERT INTO posts_polls_options_users (user_id, poll_id, option_id) VALUES (?, ?, ?)`,
+          [userId, pollId, optionId],
+        );
+      }
+
+      // Recalculate vote counts to keep totals accurate
       await connection.query(
-        `UPDATE posts_polls SET votes = votes + 1 WHERE poll_id = ?`,
+        `UPDATE posts_polls_options ppo
+         SET votes = (
+          SELECT COUNT(*)
+          FROM posts_polls_options_users ppou
+          WHERE ppou.option_id = ppo.option_id
+         )
+         WHERE ppo.poll_id = ?`,
         [pollId],
       );
+
+      const [[{ totalVotes }]] = await connection.query(
+        `SELECT COUNT(*) AS totalVotes FROM posts_polls_options_users WHERE poll_id = ?`,
+        [pollId],
+      );
+
+      await connection.query(`UPDATE posts_polls SET votes = ? WHERE poll_id = ?`, [
+        totalVotes,
+        pollId,
+      ]);
 
       // Get updated poll
       const [poll] = await connection.query(
@@ -2040,7 +2066,7 @@ class PostService {
         [pollId],
       );
 
-      const totalVotes = poll[0]?.votes || 1;
+      const resolvedTotalVotes = Number(totalVotes || poll[0]?.votes || 0);
 
       // Get updated options with percentages
       const [options] = await connection.query(
@@ -2052,7 +2078,7 @@ class PostService {
          WHERE ppo.poll_id = ?
          GROUP BY ppo.option_id
          ORDER BY ppo.option_id ASC`,
-        [totalVotes, pollId],
+        [resolvedTotalVotes, pollId],
       );
 
       await connection.commit();

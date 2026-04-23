@@ -69,7 +69,7 @@ socketController.initializeSocket();
 app.use(cors());
 app.use(
   express.json({
-    limit: "50mb",
+    limit: "100mb",
     verify: (req, res, buf) => {
       if (
         req.originalUrl.includes("/webhook") ||
@@ -81,7 +81,38 @@ app.use(
   }),
 );
 
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use(express.urlencoded({ limit: "100mb", extended: true }));
+
+// Logging middleware
+app.use(async (req, res, next) => {
+  const start = Date.now();
+  const token = req.headers.authorization?.split(" ")[1];
+  let tokenStatus = "no token";
+
+  const originalSend = res.send;
+  res.send = function (body) {
+    const responseTime = Date.now() - start;
+    console.log(`🟢 [${req.method}] ${req.url}`);
+    console.log("Response Status:", res.statusCode);
+    console.log("Response Time:", `${responseTime}ms`);
+    console.log("Token Status:", tokenStatus);
+    console.log("--------------------------------------");
+    return originalSend.call(this, body);
+  };
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      tokenStatus = `valid (userId: ${decoded.id || decoded.user_id || "unknown"})`;
+      req.user = decoded;
+    } catch (err) {
+      tokenStatus = "invalid or expired";
+      console.warn("Token verification failed:", err.message);
+    }
+  }
+
+  next();
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -111,34 +142,42 @@ app.use("/api/ads", adsRoutes);
 app.use("/api/webhooks", webhooksRoutes);
 app.use("/api/membership", membershipRoutes);
 
-// Logging middleware
-app.use(async (req, res, next) => {
-  const start = Date.now();
-  const token = req.headers.authorization?.split(" ")[1];
-  let tokenStatus = "no token";
+// Global error handler (captures 413 + multer limits with clear logs)
+app.use((err, req, res, next) => {
+  if (!err) return next();
 
-  const originalSend = res.send;
-  res.send = function (body) {
-    const responseTime = Date.now() - start;
-    console.log(`🟢 [${req.method}] ${req.url}`);
-    console.log("Response Status:", res.statusCode);
-    console.log("Response Time:", `${responseTime}ms`);
-    console.log("Token Status:", tokenStatus);
-    console.log("--------------------------------------");
-    return originalSend.call(this, body);
-  };
+  const isMulterTooLarge =
+    err.code === "LIMIT_FILE_SIZE" || err.code === "LIMIT_FIELD_VALUE";
+  const isPayloadTooLarge =
+    err.type === "entity.too.large" || err.status === 413 || isMulterTooLarge;
 
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      tokenStatus = `valid (userId: ${decoded.id || decoded.user_id || "unknown"})`;
-      req.user = decoded;
-    } catch (err) {
-      tokenStatus = "invalid or expired";
-    }
+  if (isPayloadTooLarge) {
+    console.error("❌ Payload too large", {
+      method: req.method,
+      url: req.originalUrl,
+      contentType: req.headers["content-type"],
+      contentLength: req.headers["content-length"],
+      errorCode: err.code,
+      errorMessage: err.message,
+    });
+
+    return res.status(413).json({
+      success: false,
+      message: "Payload too large. Please reduce file size and try again.",
+    });
   }
 
-  next();
+  console.error("❌ Unhandled server error", {
+    method: req.method,
+    url: req.originalUrl,
+    error: err.message,
+    stack: err.stack,
+  });
+
+  return res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal server error",
+  });
 });
 
 // Default route

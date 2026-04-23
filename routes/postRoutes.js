@@ -151,6 +151,9 @@ router.post(
   postController.purchaseProduct,
 );
 
+// ==================== BOOST ====================
+router.post("/:id/boost", authenticateToken, postController.boostPost);
+
 router.delete("/:id", authenticateToken, postController.deletePost);
 // ==================== SAVE / SHARE ====================
 router.post("/:id/save", authenticateToken, postController.savePost);
