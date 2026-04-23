@@ -41,6 +41,16 @@ exports.verifyPayment = [
         `Paystack deposit - Ref: ${payment.reference}`,
       );
 
+      await NotificationService.createNotification(
+        payment.userId,
+        payment.userId,
+        "wallet_payment",
+        `Your wallet was funded with ₦${Number(payment.amount).toFixed(2)}`,
+        "wallet",
+        payment.userId,
+        "/wallet",
+      );
+
       res.status(200).send("OK");
     } catch (err) {
       console.error("Webhook error:", err.message);
@@ -69,6 +79,17 @@ exports.convertToWallet = async (req, res) => {
 
   try {
     await WalletService.convertToWallet(userId, amount, source);
+
+    await NotificationService.createNotification(
+      userId,
+      userId,
+      "wallet_payment",
+      `₦${Number(amount).toFixed(2)} was added to your wallet from ${source}`,
+      "wallet",
+      userId,
+      "/wallet",
+    );
+
     res.json({ message: `${source} converted to wallet`, amount });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -357,6 +378,16 @@ exports.verifyWalletFunding = async (req, res) => {
         [userId, baseAmount, ref],
       );
 
+      await NotificationService.createNotification(
+        userId,
+        userId,
+        "wallet_payment",
+        `Your wallet was funded with ₦${Number(baseAmount).toFixed(2)}`,
+        "wallet",
+        userId,
+        "/wallet",
+      );
+
       await connection.commit();
       console.log(
         `SUCCESS: ₦${baseAmount} credited to user ${userId} | Ref: ${ref}`,
@@ -403,6 +434,16 @@ exports.testCredit = async (req, res) => {
         amount,
         `Wallet funded via Paystack (Test) – Ref: test_ref_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
       ],
+    );
+
+    await NotificationService.createNotification(
+      userId,
+      userId,
+      "wallet_payment",
+      `Your wallet was funded with ₦${Number(amount).toFixed(2)}`,
+      "wallet",
+      userId,
+      "/wallet",
     );
 
     await connection.commit();
@@ -478,6 +519,16 @@ exports.handlePaystackCallback = async (req, res) => {
        (user_id, node_type, amount, type, date, description, reference)
        VALUES (?, 'paystack', ?, 'in', NOW(), 'Wallet funded via Paystack', ?)`,
       [userId, baseAmount, ref],
+    );
+
+    await NotificationService.createNotification(
+      userId,
+      userId,
+      "wallet_payment",
+      `Your wallet was funded with ₦${Number(baseAmount).toFixed(2)}`,
+      "wallet",
+      userId,
+      "/wallet",
     );
 
     await connection.commit();
