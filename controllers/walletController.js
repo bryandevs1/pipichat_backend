@@ -27,17 +27,39 @@ const calculateWalletFundingFee = (amount) => {
   return Math.min(rawFee, WALLET_FUNDING_CONFIG.max_fee);
 };
 
-const processWalletFundingCredit = async ({ userId, baseAmount, ref }) => {
+const processWalletFundingCredit = async ({
+  userId,
+  baseAmount,
+  ref,
+  source,
+}) => {
   const lockName = `wallet_funding_${ref}`;
   const description = `Wallet funded via Paystack | Ref: ${ref}`;
+
+  console.log("💳 Wallet funding credit requested", {
+    source,
+    userId,
+    ref,
+    baseAmount,
+    lockName,
+  });
 
   const [lockRows] = await db.query("SELECT GET_LOCK(?, 10) AS lock_acquired", [
     lockName,
   ]);
   const lockAcquired = Number(lockRows?.[0]?.lock_acquired) === 1;
 
+  console.log("🔐 Wallet funding lock result", {
+    source,
+    userId,
+    ref,
+    lockName,
+    lockAcquired,
+  });
+
   if (!lockAcquired) {
     console.warn("⚠️ Unable to acquire wallet funding lock", {
+      source,
       userId,
       ref,
       lockName,
@@ -50,6 +72,13 @@ const processWalletFundingCredit = async ({ userId, baseAmount, ref }) => {
   try {
     await connection.beginTransaction();
 
+    console.log("🧾 Wallet funding transaction started", {
+      source,
+      userId,
+      ref,
+      baseAmount,
+    });
+
     const [existing] = await connection.query(
       `SELECT transaction_id FROM wallet_transactions
        WHERE user_id = ? AND node_type = 'recharge' AND description LIKE ?
@@ -57,8 +86,20 @@ const processWalletFundingCredit = async ({ userId, baseAmount, ref }) => {
       [userId, `%Ref: ${ref}%`],
     );
 
+    console.log("🔎 Wallet funding duplicate check", {
+      source,
+      userId,
+      ref,
+      existingCount: existing.length,
+    });
+
     if (existing.length > 0) {
       await connection.rollback();
+      console.log("↩️ Wallet funding skipped because ref already exists", {
+        source,
+        userId,
+        ref,
+      });
       return { credited: false, alreadyProcessed: true, locked: true };
     }
 
@@ -85,16 +126,37 @@ const processWalletFundingCredit = async ({ userId, baseAmount, ref }) => {
     );
 
     await connection.commit();
+    console.log("✅ Wallet funding credited successfully", {
+      source,
+      userId,
+      ref,
+      baseAmount,
+    });
     return { credited: true, alreadyProcessed: false, locked: true };
   } catch (error) {
     await connection.rollback();
+    console.error("❌ Wallet funding credit failed", {
+      source,
+      userId,
+      ref,
+      baseAmount,
+      message: error?.message,
+      code: error?.code,
+    });
     throw error;
   } finally {
     connection.release();
     try {
       await db.query("SELECT RELEASE_LOCK(?)", [lockName]);
+      console.log("🔓 Wallet funding lock released", {
+        source,
+        userId,
+        ref,
+        lockName,
+      });
     } catch (releaseError) {
       console.warn("⚠️ Failed to release wallet funding lock", {
+        source,
         ref,
         message: releaseError?.message,
       });
@@ -498,6 +560,13 @@ exports.verifyWalletFunding = async (req, res) => {
 
   const event = req.body;
 
+  console.log("📨 Paystack webhook payload received", {
+    event: event?.event,
+    reference: event?.data?.reference,
+    userId: event?.data?.metadata?.user_id,
+    baseAmount: event?.data?.metadata?.base_amount,
+  });
+
   if (event.event === "charge.success") {
     const metadata = event.data.metadata || {};
     const ref = event.data.reference;
@@ -515,6 +584,7 @@ exports.verifyWalletFunding = async (req, res) => {
         userId,
         baseAmount,
         ref,
+        source: "webhook",
       });
 
       console.log("✅ Wallet funding webhook processed", {
@@ -592,6 +662,11 @@ exports.testCredit = async (req, res) => {
 exports.handlePaystackCallback = async (req, res) => {
   const { reference } = req.query;
 
+  console.log("🔁 Paystack callback hit", {
+    reference,
+    url: req.originalUrl,
+  });
+
   if (!reference) {
     return res.redirect("https://pipiafrica.com/wallet?status=failed");
   }
@@ -608,6 +683,13 @@ exports.handlePaystackCallback = async (req, res) => {
     );
 
     const data = verification.data.data;
+
+    console.log("✅ Paystack verification response received", {
+      reference,
+      status: data?.status,
+      userId: data?.metadata?.user_id,
+      baseAmount: data?.metadata?.base_amount,
+    });
 
     if (data.status !== "success") {
       return res.redirect("https://pipiafrica.com/wallet?status=failed");
@@ -628,6 +710,7 @@ exports.handlePaystackCallback = async (req, res) => {
       userId,
       baseAmount,
       ref,
+      source: "callback",
     });
 
     console.log("✅ Wallet funding callback processed", {
