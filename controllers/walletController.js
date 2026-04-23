@@ -6,6 +6,7 @@ const db = require("../config/db");
 const NotificationService = require("../services/notificationService");
 const axios = require("axios");
 const crypto = require("crypto");
+const { getFullUserProfileUrl } = require("../utils/urlNormalizer");
 
 exports.initializePayment = async (req, res) => {
   try {
@@ -133,7 +134,12 @@ exports.sendMoney = async (req, res) => {
 exports.getTransactions = async (req, res) => {
   const { userId } = req.params;
   const transactions = await WalletService.getTransactions(userId);
-  res.json({ transactions });
+  const normalizedTransactions = transactions.map((tx) => ({
+    ...tx,
+    counterparty_picture: getFullUserProfileUrl(tx.counterparty_picture),
+  }));
+
+  res.json({ transactions: normalizedTransactions });
 };
 
 exports.searchUsers = async (req, res) => {
@@ -149,7 +155,12 @@ exports.searchUsers = async (req, res) => {
     [`%${query}%`, `%${query}%`, currentUserId],
   );
 
-  res.json({ users });
+  const normalizedUsers = users.map((user) => ({
+    ...user,
+    user_picture: getFullUserProfileUrl(user.user_picture),
+  }));
+
+  res.json({ users: normalizedUsers });
 };
 
 // Add this to your wallet routes (backend)
@@ -238,7 +249,7 @@ exports.recentTransactionUsers = async (req, res) => {
         user_name: user.user_name,
         user_firstname: user.user_firstname,
         user_lastname: user.user_lastname,
-        user_picture: user.user_picture,
+        user_picture: getFullUserProfileUrl(user.user_picture),
       }));
 
     res.json({ users: recentUsers });
@@ -270,6 +281,31 @@ exports.initializeWalletFunding = async (req, res) => {
   try {
     const reference = `wallet_fund_${userId}_${Date.now()}`;
 
+    let payerEmail = req.user?.email || req.user?.user_email || null;
+    if (!payerEmail) {
+      const [emailRows] = await db.query(
+        `SELECT user_email FROM users WHERE user_id = ? LIMIT 1`,
+        [userId],
+      );
+      payerEmail = emailRows?.[0]?.user_email || null;
+    }
+
+    if (!payerEmail) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Unable to initialize payment: no email found for this account.",
+      });
+    }
+
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error("PAYSTACK_SECRET_KEY is missing");
+      return res.status(500).json({
+        success: false,
+        message: "Payment gateway is not configured. Please contact support.",
+      });
+    }
+
     // YOUR FEE: 1.5% + ₦100, capped at ₦2000
     const fee = Math.min(numAmount * 0.015 + 10, 2000);
     const totalAmount = numAmount + fee; // This is what user actually pays
@@ -280,13 +316,13 @@ exports.initializeWalletFunding = async (req, res) => {
       fee,
       totalAmount,
       reference,
-      email: req.user.email,
+      email: payerEmail,
     });
 
     const paystackResponse = await axios.post(
       "https://api.paystack.co/transaction/initialize",
       {
-        email: req.user.email,
+        email: payerEmail,
         amount: Math.round(totalAmount * 100), // Paystack sees TOTAL
         currency: "NGN",
         reference,
@@ -304,6 +340,7 @@ exports.initializeWalletFunding = async (req, res) => {
           Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
           "Content-Type": "application/json",
         },
+        timeout: 15000,
       },
     );
 
@@ -320,7 +357,12 @@ exports.initializeWalletFunding = async (req, res) => {
       message: "Payment initialized successfully",
     });
   } catch (err) {
-    console.error("Paystack init error:", err.response?.data || err.message);
+    console.error("Paystack init error:", {
+      message: err.message,
+      code: err.code,
+      status: err.response?.status,
+      data: err.response?.data,
+    });
     res.status(500).json({
       success: false,
       message: "Failed to connect to payment gateway. Please try again.",
