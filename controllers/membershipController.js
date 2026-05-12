@@ -1,6 +1,37 @@
 const db = require("../config/db");
 const jwt = require("jsonwebtoken");
 
+const getExpiryDate = (paymentDate, period, periodNum) => {
+  const baseDate = new Date(paymentDate);
+  const amount = Number(periodNum) || 1;
+
+  if (Number.isNaN(baseDate.getTime())) {
+    return null;
+  }
+
+  const expiry = new Date(baseDate);
+
+  switch (period) {
+    case "Day":
+      expiry.setDate(expiry.getDate() + amount);
+      break;
+    case "Week":
+      expiry.setDate(expiry.getDate() + amount * 7);
+      break;
+    case "Month":
+      expiry.setMonth(expiry.getMonth() + amount);
+      break;
+    case "Year":
+      expiry.setFullYear(expiry.getFullYear() + amount);
+      break;
+    default:
+      expiry.setMonth(expiry.getMonth() + amount);
+      break;
+  }
+
+  return expiry;
+};
+
 /**
  * Get all available membership packages
  */
@@ -74,6 +105,9 @@ const getUserPackage = async (req, res) => {
         p.allowed_blogs_categories,
         p.allowed_videos_categories,
         p.allowed_products,
+        u.user_verified,
+        u.user_boosted_posts,
+        u.user_boosted_pages,
         CASE p.period
           WHEN 'Day' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num DAY)
           WHEN 'Week' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num WEEK)
@@ -83,6 +117,7 @@ const getUserPackage = async (req, res) => {
         END as expiry_date
       FROM packages_payments pp
       JOIN packages p ON pp.package_name = p.name
+      JOIN users u ON pp.user_id = u.user_id
       WHERE pp.user_id = ?
       ORDER BY pp.payment_date DESC
       LIMIT 1
@@ -98,9 +133,31 @@ const getUserPackage = async (req, res) => {
       });
     }
 
+    const expiryDate = new Date(userPackage.expiry_date);
+    const now = new Date();
+    const isActive = !Number.isNaN(expiryDate.getTime()) && expiryDate > now;
+
+    if (!isActive) {
+      return res.status(200).json({
+        success: true,
+        data: null,
+        message: "User package has expired",
+      });
+    }
+
     res.status(200).json({
       success: true,
-      data: userPackage,
+      data: {
+        ...userPackage,
+        user_verified: userPackage.user_verified === '1',
+        is_active: true,
+        remaining_boosted_posts: Number(userPackage.user_boosted_posts || 0),
+        remaining_boosted_pages: Number(userPackage.user_boosted_pages || 0),
+        days_left: Math.max(
+          0,
+          Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+        ),
+      },
     });
   } catch (error) {
     console.error("Error fetching user package:", error);
@@ -109,6 +166,128 @@ const getUserPackage = async (req, res) => {
       message: "Failed to fetch user package",
       error: error.message,
     });
+  }
+};
+
+/**
+ * Purchase / activate a membership package.
+ * This auto-verifies the user and refreshes boost quotas.
+ */
+const subscribeToPackage = async (req, res) => {
+  const { package_id } = req.body;
+  const userId = req.user.id;
+
+  if (!package_id) {
+    return res.status(400).json({
+      success: false,
+      message: "package_id is required",
+    });
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [[pkg]] = await connection.query(
+      `SELECT * FROM packages WHERE package_id = ? LIMIT 1 FOR UPDATE`,
+      [package_id],
+    );
+
+    if (!pkg) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "Package not found",
+      });
+    }
+
+    const [[userRow]] = await connection.query(
+      `SELECT user_wallet_balance FROM users WHERE user_id = ? LIMIT 1 FOR UPDATE`,
+      [userId],
+    );
+
+    if (!userRow) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const amount = Number.parseFloat(pkg.price);
+
+    if (Number.isNaN(amount) || amount <= 0) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Package price is invalid",
+      });
+    }
+
+    if (Number.parseFloat(userRow.user_wallet_balance || 0) < amount) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient wallet balance",
+      });
+    }
+
+    await connection.query(
+      `UPDATE users
+       SET user_wallet_balance = user_wallet_balance - ?,
+           user_verified = '1',
+           user_boosted_posts = ?,
+           user_boosted_pages = ?
+       WHERE user_id = ?`,
+      [
+        amount,
+        Number(pkg.boost_posts_enabled) === 1 || String(pkg.boost_posts_enabled) === "1"
+          ? Number(pkg.boost_posts || 0)
+          : 0,
+        Number(pkg.boost_pages_enabled) === 1 || String(pkg.boost_pages_enabled) === "1"
+          ? Number(pkg.boost_pages || 0)
+          : 0,
+        userId,
+      ],
+    );
+
+    await connection.query(
+      `INSERT INTO packages_payments (payment_date, package_name, package_price, user_id)
+       VALUES (NOW(), ?, ?, ?)`,
+      [pkg.name, amount, userId],
+    );
+
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: `Package ${pkg.name} activated successfully`,
+      data: {
+        package_id: pkg.package_id,
+        package_name: pkg.name,
+        package_price: amount,
+        boost_posts_enabled: pkg.boost_posts_enabled === '1' || pkg.boost_posts_enabled === 1,
+        boost_posts: Number(pkg.boost_posts || 0),
+        boost_pages_enabled: pkg.boost_pages_enabled === '1' || pkg.boost_pages_enabled === 1,
+        boost_pages: Number(pkg.boost_pages || 0),
+        verification_badge_enabled:
+          pkg.verification_badge_enabled === '1' || pkg.verification_badge_enabled === 1,
+        user_verified: true,
+        remaining_boosted_posts: Number(pkg.boost_posts || 0),
+        remaining_boosted_pages: Number(pkg.boost_pages || 0),
+      },
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error("subscribeToPackage error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to activate package",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
   }
 };
 
@@ -265,4 +444,5 @@ module.exports = {
   getUserPackage,
   getUserBoostedPosts,
   getUserBoostedPages,
+  subscribeToPackage,
 };

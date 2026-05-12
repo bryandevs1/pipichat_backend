@@ -13,6 +13,16 @@ const authenticateToken = authMiddleware.authenticateToken;
 router.get("/packages", membershipController.getAllPackages);
 
 /**
+ * Purchase / activate a package
+ * POST /api/membership/subscribe
+ */
+router.post(
+  "/subscribe",
+  authenticateToken,
+  membershipController.subscribeToPackage,
+);
+
+/**
  * Get user's current package
  * GET /api/membership/user-package
  */
