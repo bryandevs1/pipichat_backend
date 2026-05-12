@@ -333,7 +333,7 @@ const getUserBoostedPosts = async (req, res) => {
         u.user_name,
         u.user_picture,
         p.boosted_by,
-        p.created_at,
+        p.time AS created_at,
         p.views,
         p.comments,
         p.shares,
@@ -344,8 +344,8 @@ const getUserBoostedPosts = async (req, res) => {
       FROM posts p
       JOIN users u ON p.user_id = u.user_id
       WHERE p.boosted_by = ?
-      AND p.created_at >= ?
-      ORDER BY p.created_at DESC
+      AND p.time >= ?
+      ORDER BY p.time DESC
       LIMIT 20
     `;
 
@@ -403,13 +403,13 @@ const getUserBoostedPages = async (req, res) => {
         p.page_admin,
         p.page_picture_id,
         p.page_boosted_by,
-        p.created_at,
+        p.page_date AS created_at,
         u.user_name
       FROM pages p
       JOIN users u ON p.page_admin = u.user_id
       WHERE p.page_boosted_by = ?
-      AND p.created_at >= ?
-      ORDER BY p.created_at DESC
+      AND p.page_date >= ?
+      ORDER BY p.page_date DESC
       LIMIT 20
     `;
 
