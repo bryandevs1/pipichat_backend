@@ -51,37 +51,6 @@ const getUserPackage = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get the latest active package payment for the user
-    const query = `
-      SELECT 
-        pp.payment_id,
-        pp.payment_date,
-        pp.package_name,
-        pp.package_price,
-        pp.user_id,
-        p.package_id,
-        p.price,
-        p.period,
-        p.period_num,
-        p.color,
-        p.icon,
-        p.custom_description,
-        p.verification_badge_enabled,
-        p.boost_posts_enabled,
-        p.boost_posts,
-        p.boost_pages_enabled,
-        p.boost_pages,
-        p.allowed_blogs_categories,
-        p.allowed_videos_categories,
-        p.allowed_products,
-        DATE_ADD(pp.payment_date, INTERVAL p.period_num ${getIntervalUnit(p.period)}) as expiry_date
-      FROM packages_payments pp
-      JOIN packages p ON pp.package_name = p.name
-      WHERE pp.user_id = ?
-      ORDER BY pp.payment_date DESC
-      LIMIT 1
-    `;
-
     // Simple version without dynamic interval
     const simpleQuery = `
       SELECT 
@@ -104,7 +73,14 @@ const getUserPackage = async (req, res) => {
         p.boost_pages,
         p.allowed_blogs_categories,
         p.allowed_videos_categories,
-        p.allowed_products
+        p.allowed_products,
+        CASE p.period
+          WHEN 'Day' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num DAY)
+          WHEN 'Week' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num WEEK)
+          WHEN 'Month' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num MONTH)
+          WHEN 'Year' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num YEAR)
+          ELSE DATE_ADD(pp.payment_date, INTERVAL p.period_num MONTH)
+        END as expiry_date
       FROM packages_payments pp
       JOIN packages p ON pp.package_name = p.name
       WHERE pp.user_id = ?
