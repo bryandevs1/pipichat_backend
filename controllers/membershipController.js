@@ -149,13 +149,15 @@ const getUserPackage = async (req, res) => {
       success: true,
       data: {
         ...userPackage,
-        user_verified: userPackage.user_verified === '1',
+        user_verified: userPackage.user_verified === "1",
         is_active: true,
         remaining_boosted_posts: Number(userPackage.user_boosted_posts || 0),
         remaining_boosted_pages: Number(userPackage.user_boosted_pages || 0),
         days_left: Math.max(
           0,
-          Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+          Math.ceil(
+            (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+          ),
         ),
       },
     });
@@ -242,10 +244,12 @@ const subscribeToPackage = async (req, res) => {
        WHERE user_id = ?`,
       [
         amount,
-        Number(pkg.boost_posts_enabled) === 1 || String(pkg.boost_posts_enabled) === "1"
+        Number(pkg.boost_posts_enabled) === 1 ||
+        String(pkg.boost_posts_enabled) === "1"
           ? Number(pkg.boost_posts || 0)
           : 0,
-        Number(pkg.boost_pages_enabled) === 1 || String(pkg.boost_pages_enabled) === "1"
+        Number(pkg.boost_pages_enabled) === 1 ||
+        String(pkg.boost_pages_enabled) === "1"
           ? Number(pkg.boost_pages || 0)
           : 0,
         userId,
@@ -267,12 +271,15 @@ const subscribeToPackage = async (req, res) => {
         package_id: pkg.package_id,
         package_name: pkg.name,
         package_price: amount,
-        boost_posts_enabled: pkg.boost_posts_enabled === '1' || pkg.boost_posts_enabled === 1,
+        boost_posts_enabled:
+          pkg.boost_posts_enabled === "1" || pkg.boost_posts_enabled === 1,
         boost_posts: Number(pkg.boost_posts || 0),
-        boost_pages_enabled: pkg.boost_pages_enabled === '1' || pkg.boost_pages_enabled === 1,
+        boost_pages_enabled:
+          pkg.boost_pages_enabled === "1" || pkg.boost_pages_enabled === 1,
         boost_pages: Number(pkg.boost_pages || 0),
         verification_badge_enabled:
-          pkg.verification_badge_enabled === '1' || pkg.verification_badge_enabled === 1,
+          pkg.verification_badge_enabled === "1" ||
+          pkg.verification_badge_enabled === 1,
         user_verified: true,
         remaining_boosted_posts: Number(pkg.boost_posts || 0),
         remaining_boosted_pages: Number(pkg.boost_pages || 0),
@@ -321,7 +328,7 @@ const getUserBoostedPosts = async (req, res) => {
     const postsQuery = `
       SELECT 
         p.post_id,
-        p.post_text,
+        p.text AS post_text,
         p.user_id,
         u.user_name,
         u.user_picture,
