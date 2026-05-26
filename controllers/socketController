@@ -1,0 +1,771 @@
+const db = require("../config/db");
+const expoPushService = require("../services/expoPushService");
+
+class SocketController {
+  constructor(io) {
+    this.io = io;
+    this.onlineUsers = new Map(); // userId -> Set of socketIds
+    this.userSocketMap = new Map(); // socketId -> userId
+    this.conversationRooms = new Map(); // conversationId -> Set of userIds
+    this.userSockets = new Map(); // Keep for backward compatibility with stories
+  }
+
+  /**
+   * Initialize socket connection
+   */
+  initializeSocket() {
+    this.io.on("connection", (socket) => {
+      console.log(`🟢 Socket connected: ${socket.id}`);
+
+      // User authentication and setup
+      socket.on("authenticate", async (data) => {
+        await this.handleAuthentication(socket, data);
+      });
+
+      // --- CHAT FUNCTIONALITY ---
+
+      // Join conversation room
+      socket.on("join-conversation", (data) => {
+        this.handleJoinConversation(socket, data);
+      });
+
+      // Leave conversation room
+      socket.on("leave-conversation", (data) => {
+        this.handleLeaveConversation(socket, data);
+      });
+
+      // Send message
+      socket.on("send-message", async (data) => {
+        await this.handleSendMessage(socket, data);
+      });
+
+      // Typing indicator
+      socket.on("typing", (data) => {
+        this.handleTyping(socket, data);
+      });
+
+      // Stop typing
+      socket.on("stop-typing", (data) => {
+        this.handleStopTyping(socket, data);
+      });
+
+      // Message seen
+      socket.on("message-seen", async (data) => {
+        await this.handleMessageSeen(socket, data);
+      });
+
+      // Call signaling
+      socket.on("call-signal", async (data) => {
+        await this.handleCallSignal(socket, data);
+      });
+
+      // --- STORY FUNCTIONALITY ---
+
+      // Handle join-friend-room for story updates
+      socket.on("join-friend-room", (friendId) => {
+        this.handleJoinFriendRoom(socket, friendId);
+      });
+
+      // Handle get-friends for initial friend rooms
+      socket.on("get-friends", async () => {
+        await this.handleGetFriends(socket);
+      });
+
+      // Handle story viewing
+      socket.on("view-story", (data) => {
+        this.handleViewStory(socket, data);
+      });
+
+      // --- CALL FUNCTIONALITY (WebRTC Signaling) ---
+
+      socket.on("join-call-room", (roomId) => {
+        this.handleJoinCallRoom(socket, roomId);
+      });
+
+      socket.on("offer", (data) => {
+        this.handleOffer(socket, data);
+      });
+
+      socket.on("answer", (data) => {
+        this.handleAnswer(socket, data);
+      });
+
+      socket.on("ice-candidate", (data) => {
+        this.handleIceCandidate(socket, data);
+      });
+
+      socket.on("end-call", (roomId) => {
+        this.handleEndCall(socket, roomId);
+      });
+
+      // Ping/pong for keep-alive
+      socket.on("ping", () => {
+        socket.emit("pong", { timestamp: new Date().toISOString() });
+      });
+
+      // Disconnect
+      socket.on("disconnect", () => {
+        this.handleDisconnect(socket);
+      });
+    });
+  }
+
+  /**
+   * Handle user authentication
+   */
+  async handleAuthentication(socket, data) {
+    try {
+      const { userId, username } = data;
+
+      if (!userId) {
+        socket.emit("error", { message: "Invalid authentication" });
+        return;
+      }
+
+      // Store user-socket mapping
+      socket.userId = userId;
+      socket.username = username || "Unknown";
+      this.userSocketMap.set(socket.id, userId);
+
+      // Add to online users
+      if (!this.onlineUsers.has(userId)) {
+        this.onlineUsers.set(userId, new Set());
+      }
+      this.onlineUsers.get(userId).add(socket.id);
+
+      // For backward compatibility with stories
+      if (!this.userSockets.has(userId)) {
+        this.userSockets.set(userId, new Set());
+      }
+      this.userSockets.get(userId).add(socket);
+
+      // Join user's personal room
+      socket.join(`user:${userId}`);
+
+      // Notify user's friends that they're online
+      await this.notifyFriendsOnlineStatus(userId, true);
+
+      // Get user's active conversations and join them
+      await this.joinUserConversations(socket, userId);
+
+      console.log(`✅ User ${userId} authenticated on socket ${socket.id}`);
+
+      // Notify client of successful connection (like original code)
+      socket.emit("connected", {
+        type: "CONNECTED",
+        message: "Socket.IO connection established",
+        timestamp: new Date().toISOString(),
+        userId: userId,
+      });
+    } catch (error) {
+      console.error("❌ Authentication error:", error);
+      socket.emit("error", { message: "Authentication failed" });
+    }
+  }
+
+  /**
+   * Join user to their conversation rooms
+   */
+  async joinUserConversations(socket, userId) {
+    try {
+      const [conversations] = await db.query(
+        `
+        SELECT conversation_id 
+        FROM conversations_users 
+        WHERE user_id = ? AND deleted = '0'
+      `,
+        [userId],
+      );
+
+      conversations.forEach((conv) => {
+        const roomName = `conversation:${conv.conversation_id}`;
+        socket.join(roomName);
+
+        // Track conversation participants
+        if (!this.conversationRooms.has(conv.conversation_id)) {
+          this.conversationRooms.set(conv.conversation_id, new Set());
+        }
+        this.conversationRooms.get(conv.conversation_id).add(userId);
+      });
+
+      console.log(
+        `✅ User ${userId} joined ${conversations.length} conversation rooms`,
+      );
+    } catch (error) {
+      console.error("❌ Error joining conversations:", error);
+    }
+  }
+
+  /**
+   * Notify friends about online status
+   */
+  async notifyFriendsOnlineStatus(userId, isOnline) {
+    try {
+      const [friends] = await db.query(
+        `
+        SELECT 
+          CASE 
+            WHEN user_one_id = ? THEN user_two_id
+            ELSE user_one_id
+          END as friend_id
+        FROM friends
+        WHERE (user_one_id = ? OR user_two_id = ?)
+        AND status = 1
+      `,
+        [userId, userId, userId],
+      );
+
+      friends.forEach((friend) => {
+        const friendId = friend.friend_id;
+        const eventName = isOnline ? "friend-online" : "friend-offline";
+
+        // Check if friend is connected
+        if (this.onlineUsers.has(friendId)) {
+          this.io.to(`user:${friendId}`).emit(eventName, {
+            userId,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      });
+    } catch (error) {
+      console.error("❌ Error notifying friends:", error);
+    }
+  }
+
+  /**
+   * Handle joining a conversation room
+   */
+  handleJoinConversation(socket, data) {
+    const { conversationId } = data;
+    const userId = socket.userId;
+
+    if (!conversationId || !userId) return;
+
+    const roomName = `conversation:${conversationId}`;
+    socket.join(roomName);
+
+    // Track conversation participants
+    if (!this.conversationRooms.has(conversationId)) {
+      this.conversationRooms.set(conversationId, new Set());
+    }
+    this.conversationRooms.get(conversationId).add(userId);
+
+    console.log(`✅ User ${userId} joined conversation ${conversationId}`);
+
+    // Notify other participants
+    socket.to(roomName).emit("user-joined-conversation", {
+      conversationId,
+      userId,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Handle leaving a conversation room
+   */
+  handleLeaveConversation(socket, data) {
+    const { conversationId } = data;
+    const userId = socket.userId;
+
+    if (!conversationId || !userId) return;
+
+    const roomName = `conversation:${conversationId}`;
+    socket.leave(roomName);
+
+    // Remove from tracking
+    if (this.conversationRooms.has(conversationId)) {
+      this.conversationRooms.get(conversationId).delete(userId);
+      if (this.conversationRooms.get(conversationId).size === 0) {
+        this.conversationRooms.delete(conversationId);
+      }
+    }
+
+    console.log(`✅ User ${userId} left conversation ${conversationId}`);
+  }
+
+  /**
+   * Handle sending a message
+   */
+  async handleSendMessage(socket, data) {
+    try {
+      const { conversationId, message, image, voiceNote } = data;
+      const userId = socket.userId;
+
+      if (!conversationId || !userId) {
+        socket.emit("error", { message: "Missing required fields" });
+        return;
+      }
+
+      // Save message to database
+      const query = `
+        INSERT INTO conversations_messages 
+        (conversation_id, user_id, message, image, voice_note, time) 
+        VALUES (?, ?, ?, ?, ?, NOW())
+      `;
+
+      const [result] = await db.query(query, [
+        conversationId,
+        userId,
+        message,
+        image,
+        voiceNote,
+      ]);
+
+      const messageId = result.insertId;
+
+      // Update conversation's last message
+      await db.query(
+        `
+        UPDATE conversations 
+        SET last_message_id = ? 
+        WHERE conversation_id = ?
+      `,
+        [messageId, conversationId],
+      );
+
+      // Update seen status for sender
+      await db.query(
+        `
+        UPDATE conversations_users 
+        SET seen = '1' 
+        WHERE conversation_id = ? AND user_id = ?
+      `,
+        [conversationId, userId],
+      );
+
+      // Get message with user info
+      const [messageWithUser] = await db.query(
+        `
+        SELECT 
+          cm.*,
+          u.user_name,
+          u.user_picture,
+          u.user_verified
+        FROM conversations_messages cm
+        JOIN users u ON cm.user_id = u.user_id
+        WHERE cm.message_id = ?
+      `,
+        [messageId],
+      );
+
+      const fullMessage = messageWithUser[0];
+
+      // Emit to conversation room
+      const roomName = `conversation:${conversationId}`;
+      this.io.to(roomName).emit("new-message", {
+        conversationId,
+        message: fullMessage,
+        senderId: userId,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Notify users who are not in the conversation room
+      const [conversationUsers] = await db.query(
+        `
+        SELECT user_id 
+        FROM conversations_users 
+        WHERE conversation_id = ? AND user_id != ? AND deleted = '0'
+      `,
+        [conversationId, userId],
+      );
+
+      conversationUsers.forEach((user) => {
+        const userRoom = `user:${user.user_id}`;
+
+        // Check if user is in the conversation room
+        if (
+          !this.conversationRooms.has(conversationId) ||
+          !this.conversationRooms.get(conversationId).has(user.user_id)
+        ) {
+          this.io.to(userRoom).emit("message-notification", {
+            conversationId,
+            message: fullMessage,
+            senderId: userId,
+            unread: true,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      });
+
+      console.log(
+        `✅ Message sent in conversation ${conversationId} by user ${userId}`,
+      );
+    } catch (error) {
+      console.error("❌ Error sending message:", error);
+      socket.emit("error", { message: "Failed to send message" });
+    }
+  }
+
+  /**
+   * Handle typing indicator
+   */
+  handleTyping(socket, data) {
+    const { conversationId } = data;
+    const userId = socket.userId;
+
+    if (!conversationId || !userId) return;
+
+    const roomName = `conversation:${conversationId}`;
+
+    // Emit to other users in conversation
+    socket.to(roomName).emit("user-typing", {
+      conversationId,
+      userId,
+      isTyping: true,
+      timestamp: new Date().toISOString(),
+    });
+
+    console.log(
+      `✍️ User ${userId} is typing in conversation ${conversationId}`,
+    );
+  }
+
+  /**
+   * Handle stop typing
+   */
+  handleStopTyping(socket, data) {
+    const { conversationId } = data;
+    const userId = socket.userId;
+
+    if (!conversationId || !userId) return;
+
+    const roomName = `conversation:${conversationId}`;
+
+    socket.to(roomName).emit("user-typing", {
+      conversationId,
+      userId,
+      isTyping: false,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Handle message seen
+   */
+  async handleMessageSeen(socket, data) {
+    try {
+      const { conversationId, messageId } = data;
+      const userId = socket.userId;
+
+      if (!conversationId || !userId) return;
+
+      // Update seen status in database
+      await db.query(
+        `
+        UPDATE conversations_users 
+        SET seen = '1' 
+        WHERE conversation_id = ? AND user_id = ?
+      `,
+        [conversationId, userId],
+      );
+
+      // Notify other users in conversation
+      const roomName = `conversation:${conversationId}`;
+      socket.to(roomName).emit("message-seen", {
+        conversationId,
+        userId,
+        messageId,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log(`👁️ Message ${messageId} marked as seen by user ${userId}`);
+    } catch (error) {
+      console.error("❌ Error marking message as seen:", error);
+    }
+  }
+
+  /**
+   * Handle call signaling
+   */
+  async handleCallSignal(socket, data) {
+    const { toUserId, signal, callId, type } = data;
+    const fromUserId = socket.userId;
+
+    if (!toUserId || !signal || !callId) return;
+
+    let callerName = socket.username || "Unknown Caller";
+    let callerPicture = null;
+
+    try {
+      const [callerRows] = await db.query(
+        `SELECT user_name, user_picture FROM users WHERE user_id = ? LIMIT 1`,
+        [fromUserId],
+      );
+
+      if (callerRows.length > 0) {
+        callerName = callerRows[0].user_name || callerName;
+        callerPicture = callerRows[0].user_picture || null;
+      }
+    } catch (error) {
+      console.error("❌ Failed to load caller profile for call signal:", error);
+    }
+
+    // Send signal to target user
+    const userRoom = `user:${toUserId}`;
+    this.io.to(userRoom).emit("call-signal", {
+      fromUserId,
+      fromUserName: callerName,
+      fromUserPicture: callerPicture,
+      signal,
+      callId,
+      type,
+      timestamp: new Date().toISOString(),
+    });
+
+    const isTargetOnline = this.onlineUsers.has(toUserId);
+
+    if (signal?.type === "call-initiate" && !isTargetOnline) {
+      try {
+        await expoPushService.sendIncomingCallPush(toUserId, {
+          title:
+            signal.callType === "video"
+              ? "Incoming Video Call"
+              : "Incoming Voice Call",
+          body: `${callerName} is calling you`,
+          data: {
+            type: "incoming_call",
+            callId,
+            fromUserId,
+            fromUserName: callerName,
+            fromUserPicture: callerPicture,
+            channelName: signal.channelName,
+            token: signal.token,
+            uid: signal.uid,
+            callType: signal.callType || "audio",
+          },
+        });
+      } catch (pushError) {
+        console.error(
+          "❌ Failed to send incoming call push notification:",
+          pushError,
+        );
+      }
+    }
+
+    console.log(`📞 Call signal sent from ${fromUserId} to ${toUserId}`);
+  }
+
+  /**
+   * --- STORY FUNCTIONALITY ---
+   */
+
+  /**
+   * Handle join-friend-room for story updates
+   */
+  handleJoinFriendRoom(socket, friendId) {
+    socket.join(`friend:${friendId}`);
+    console.log(`✅ User ${socket.userId} listening to friend ${friendId}`);
+  }
+
+  /**
+   * Handle get-friends for initial friend rooms
+   */
+  async handleGetFriends(socket) {
+    try {
+      const userId = socket.userId;
+      const [friends] = await db.query(
+        `SELECT 
+            CASE 
+                WHEN user_one_id = ? THEN user_two_id
+                ELSE user_one_id
+            END as friend_id
+        FROM friends
+        WHERE (user_one_id = ? OR user_two_id = ?)
+        AND status = 1`,
+        [userId, userId, userId],
+      );
+
+      // Join rooms for all friends
+      friends.forEach((friend) => {
+        socket.join(`friend:${friend.friend_id}`);
+      });
+
+      socket.emit("friends-list", {
+        friends: friends.map((f) => f.friend_id),
+        count: friends.length,
+      });
+
+      console.log(`✅ User ${userId} joined ${friends.length} friend rooms`);
+    } catch (error) {
+      console.error("❌ Error fetching friends for socket:", error);
+    }
+  }
+
+  /**
+   * Handle story viewing
+   */
+  handleViewStory(socket, data) {
+    const { storyId, userId } = data;
+    const viewerId = socket.userId;
+    const viewerName = socket.username;
+
+    // Emit to the story owner that their story was viewed
+    this.io.to(`user:${userId}`).emit("story-viewed", {
+      storyId,
+      viewerId,
+      viewerName,
+      timestamp: new Date().toISOString(),
+    });
+
+    console.log(`👁️ Story ${storyId} viewed by ${viewerId}`);
+  }
+
+  /**
+   * --- CALL FUNCTIONALITY (WebRTC Signaling) ---
+   */
+
+  handleJoinCallRoom(socket, roomId) {
+    socket.join(roomId);
+    console.log(`✅ Socket ${socket.id} joined call room ${roomId}`);
+  }
+
+  handleOffer(socket, data) {
+    const { roomId, offer } = data;
+    socket.to(roomId).emit("offer", offer);
+  }
+
+  handleAnswer(socket, data) {
+    const { roomId, answer } = data;
+    socket.to(roomId).emit("answer", answer);
+  }
+
+  handleIceCandidate(socket, data) {
+    const { roomId, candidate } = data;
+    socket.to(roomId).emit("ice-candidate", candidate);
+  }
+
+  handleEndCall(socket, roomId) {
+    socket.to(roomId).emit("call-ended");
+    socket.leave(roomId);
+  }
+
+  /**
+   * --- STORY BROADCASTING ---
+   * This function can be called from storyController
+   */
+  async broadcastStoryToFriends(userId, storyData) {
+    try {
+      // Get user's friends
+      const [friends] = await db.query(
+        `SELECT 
+            CASE 
+                WHEN user_one_id = ? THEN user_two_id
+                ELSE user_one_id
+            END as friend_id
+        FROM friends
+        WHERE (user_one_id = ? OR user_two_id = ?)
+        AND status = 1`,
+        [userId, userId, userId],
+      );
+
+      // Broadcast to all connected friends
+      friends.forEach((friend) => {
+        const friendId = friend.friend_id;
+
+        // Emit to the friend's personal room
+        this.io.to(`user:${friendId}`).emit("new-story", {
+          type: "NEW_STORY",
+          story: {
+            ...storyData,
+            isMyStory: false,
+            hasUnseenStory: true,
+          },
+          timestamp: new Date().toISOString(),
+        });
+
+        // Also emit to the friend-specific room
+        this.io.to(`friend:${userId}`).emit("new-story", {
+          type: "FRIEND_NEW_STORY",
+          story: storyData,
+          timestamp: new Date().toISOString(),
+        });
+      });
+
+      console.log(
+        `📢 Story broadcasted from user ${userId} to ${friends.length} friends`,
+      );
+    } catch (error) {
+      console.error("❌ Error broadcasting story to friends:", error);
+    }
+  }
+
+  /**
+   * Handle disconnect
+   */
+  handleDisconnect(socket) {
+    const userId = this.userSocketMap.get(socket.id);
+
+    if (userId) {
+      console.log(`🔴 User ${userId} disconnected from socket ${socket.id}`);
+
+      // Remove from online users
+      if (this.onlineUsers.has(userId)) {
+        this.onlineUsers.get(userId).delete(socket.id);
+        if (this.onlineUsers.get(userId).size === 0) {
+          this.onlineUsers.delete(userId);
+
+          // Notify friends that user is offline
+          this.notifyFriendsOnlineStatus(userId, false);
+        }
+      }
+
+      // Remove from user socket map
+      this.userSocketMap.delete(socket.id);
+
+      // Remove from userSockets (for backward compatibility)
+      if (this.userSockets.has(userId)) {
+        this.userSockets.get(userId).delete(socket);
+        if (this.userSockets.get(userId).size === 0) {
+          this.userSockets.delete(userId);
+        }
+      }
+
+      // Remove from conversation rooms
+      this.conversationRooms.forEach((users, conversationId) => {
+        if (users.has(userId)) {
+          users.delete(userId);
+
+          // Notify other participants
+          const roomName = `conversation:${conversationId}`;
+          this.io.to(roomName).emit("user-left-conversation", {
+            conversationId,
+            userId,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      });
+    } else {
+      console.log(`🔴 Socket ${socket.id} disconnected`);
+    }
+  }
+
+  /**
+   * Get active user connections (for backward compatibility)
+   */
+  getUserConnections(userId) {
+    return this.userSockets.has(userId)
+      ? Array.from(this.userSockets.get(userId))
+      : [];
+  }
+
+  /**
+   * Get online status of users
+   */
+  getOnlineStatus(userIds) {
+    const status = {};
+    userIds.forEach((userId) => {
+      status[userId] = this.onlineUsers.has(userId);
+    });
+    return status;
+  }
+
+  /**
+   * Send notification to user
+   */
+  sendNotification(userId, notification) {
+    const userRoom = `user:${userId}`;
+    this.io.to(userRoom).emit("notification", notification);
+  }
+}
+
+module.exports = SocketController;
