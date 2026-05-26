@@ -204,17 +204,17 @@ class NotificationService {
    */
   static getTitleForAction(action, senderName) {
     const titles = {
-      message_received: "New Message",
-      wallet_transfer: "Money Received",
-      follower_gained: "New Follower",
-      friend_request: "Friend Request",
-      friend_accepted: "Friend Request Accepted",
-      profile_visit: "Profile Viewed",
-      post_liked: "Post Liked",
-      post_commented: "New Comment",
-      reaction: "Post Reaction",
+      message_received: "💬 New Message",
+      wallet_transfer: "💰 Money Received",
+      follower_gained: "👥 New Follower",
+      friend_request: "🤝 Friend Request",
+      friend_accepted: "✅ Friend Request Accepted",
+      profile_visit: "👀 Profile Viewed",
+      post_liked: "❤️ Post Liked",
+      post_commented: "💬 New Comment",
+      reaction: "🔥 Post Reaction",
     };
-    return titles[action] || "New Notification";
+    return titles[action] || "📢 New Notification";
   }
 
   /**
@@ -223,49 +223,49 @@ class NotificationService {
   static getDefaultMessage(action) {
     const messages = {
       // Post activities
-      post_created: "created a new post",
-      post_viewed: "viewed your post",
-      post_liked: "liked your post",
-      post_commented: "commented on your post",
-      post_shared: "shared your post",
+      post_created: "📝 created a new post",
+      post_viewed: "👁️ viewed your post",
+      post_liked: "❤️ liked your post",
+      post_commented: "💬 commented on your post",
+      post_shared: "🔄 shared your post",
 
       // Comment activities
-      comment_liked: "liked your comment",
-      comment_replied: "replied to your comment",
+      comment_liked: "👍 liked your comment",
+      comment_replied: "↩️ replied to your comment",
 
       // Reaction
-      react_like: "liked your post",
-      react_love: "loved your post",
-      react_haha: "reacted with haha to your post",
-      react_yay: "reacted with yay to your post",
-      react_wow: "reacted with wow to your post",
-      react_sad: "reacted with sad to your post",
-      react_angry: "reacted with angry to your post",
+      react_like: "👍 liked your post",
+      react_love: "🥰 loved your post",
+      react_haha: "😂 reacted with haha to your post",
+      react_yay: "🎉 reacted with yay to your post",
+      react_wow: "😮 reacted with wow to your post",
+      react_sad: "😢 reacted with sad to your post",
+      react_angry: "😡 reacted with angry to your post",
 
       // Social
-      friend_request: "sent you a friend request",
-      friend_accepted: "accepted your friend request",
-      follow: "started following you",
-      follower_gained: "started following you",
+      friend_request: "🤝 sent you a friend request",
+      friend_accepted: "✅ accepted your friend request",
+      follow: "👣 started following you",
+      follower_gained: "👥 started following you",
 
       // Message
-      message_received: "sent you a message",
-      message_media: "sent you media",
+      message_received: "💌 sent you a message",
+      message_media: "📎 sent you media",
 
       // Profile
-      profile_visited: "visited your profile",
-      profile_view: "viewed your profile",
+      profile_visited: "👀 visited your profile",
+      profile_view: "👁️ viewed your profile",
 
       // Wallet/Money
-      money_received: "sent you money",
-      wallet_transfer: "transferred money to you",
-      wallet_payment: "made a payment",
+      money_received: "💸 sent you money",
+      wallet_transfer: "💳 transferred money to you",
+      wallet_payment: "🛒 made a payment",
 
       // Others
-      notification: "sent you a notification",
+      notification: "📢 sent you a notification",
     };
 
-    return messages[action] || `triggered an action: ${action}`;
+    return messages[action] || `🔔 triggered an action: ${action}`;
   }
 
   /**

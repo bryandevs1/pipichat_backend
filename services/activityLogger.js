@@ -128,20 +128,20 @@ class ActivityLogger {
    */
   static buildPushMessage(action, actorName, details) {
     const messageTemplates = {
-      GROUP_JOIN_REQUESTED: `${actorName} requested to join your group`,
-      GROUP_JOIN_APPROVED: `Your request to join "${details.group_name}" was approved`,
-      GROUP_POST_CREATED: `${actorName} posted in "${details.group_name}"`,
-      POST_LIKED: `${actorName} liked your post`,
-      POST_COMMENTED: `${actorName} commented on your post`,
-      FRIEND_REQUEST_SENT: `${actorName} sent you a friend request`,
-      FRIEND_REQUEST_ACCEPTED: `${actorName} accepted your friend request`,
-      GROUP_INVITATION: `${actorName} invited you to join "${details.group_name}"`,
-      NEW_MESSAGE: `New message from ${actorName}`,
-      EVENT_REMINDER: `Reminder: "${details.event_title}" starts soon`,
-      MENTION: `${actorName} mentioned you in a post`,
+      GROUP_JOIN_REQUESTED: `🙋 ${actorName} requested to join your group`,
+      GROUP_JOIN_APPROVED: `✅ Your request to join "${details.group_name}" was approved`,
+      GROUP_POST_CREATED: `📝 ${actorName} posted in "${details.group_name}"`,
+      POST_LIKED: `❤️ ${actorName} liked your post`,
+      POST_COMMENTED: `💬 ${actorName} commented on your post`,
+      FRIEND_REQUEST_SENT: `🤝 ${actorName} sent you a friend request`,
+      FRIEND_REQUEST_ACCEPTED: `✅ ${actorName} accepted your friend request`,
+      GROUP_INVITATION: `🎉 ${actorName} invited you to join "${details.group_name}"`,
+      NEW_MESSAGE: `💌 New message from ${actorName}`,
+      EVENT_REMINDER: `⏰ Reminder: "${details.event_title}" starts soon`,
+      MENTION: `📢 ${actorName} mentioned you in a post`,
     };
 
-    return messageTemplates[action] || `${actorName} performed an action`;
+    return messageTemplates[action] || `🔔 ${actorName} performed an action`;
   }
 
   /**
@@ -150,42 +150,42 @@ class ActivityLogger {
   static getPushNotificationConfig(action, details) {
     const configs = {
       GROUP_JOIN_REQUESTED: {
-        title: "New Join Request",
+        title: "🙋 New Join Request",
         type: "group",
         priority: "high",
       },
       GROUP_JOIN_APPROVED: {
-        title: "Join Request Approved",
+        title: "✅ Join Request Approved",
         type: "group",
         priority: "normal",
       },
       GROUP_POST_CREATED: {
-        title: "New Group Post",
+        title: "📝 New Group Post",
         type: "post",
         priority: "normal",
       },
       POST_LIKED: {
-        title: "New Like",
+        title: "❤️ New Like",
         type: "post",
         priority: "low",
       },
       POST_COMMENTED: {
-        title: "New Comment",
+        title: "💬 New Comment",
         type: "post",
         priority: "normal",
       },
       NEW_MESSAGE: {
-        title: "New Message",
+        title: "💌 New Message",
         type: "message",
         priority: "high",
       },
       FRIEND_REQUEST_SENT: {
-        title: "Friend Request",
+        title: "🤝 Friend Request",
         type: "social",
         priority: "normal",
       },
       EVENT_REMINDER: {
-        title: "Event Reminder",
+        title: "⏰ Event Reminder",
         type: "event",
         priority: "high",
       },
@@ -193,7 +193,7 @@ class ActivityLogger {
 
     return (
       configs[action] || {
-        title: "Notification",
+        title: "🔔 Notification",
         type: "default",
         priority: "normal",
       }
