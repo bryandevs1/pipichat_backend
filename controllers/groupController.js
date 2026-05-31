@@ -76,6 +76,12 @@ const handleBase64Upload = async (base64String, filename, folder) => {
   }
 };
 
+const normalizeEnum01 = (value) => {
+  if (value === undefined) return undefined;
+  if (value === "1" || value === 1 || value === true) return "1";
+  return "0";
+};
+
 class GroupController {
   // Add this helper method to GroupController
   static async ensurePostsHaveUserInfo(posts) {
@@ -240,6 +246,13 @@ class GroupController {
         location,
         country_id,
         rules,
+        group_country,
+        group_language,
+        group_boosted = "0",
+        group_boosted_by,
+        group_monetization_discount_enabled = "0",
+        group_monetization_discount_percent = 0,
+        is_fake = "0",
       } = req.body;
 
       // Validate group name format
@@ -315,8 +328,12 @@ class GroupController {
         group_publish_approval_enabled, group_picture, group_picture_id,
         group_cover, group_cover_id, group_cover_position,
         chatbox_enabled, group_monetization_enabled, group_monetization_min_price,
-        group_monetization_plans, group_members, group_date
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())`,
+        group_monetization_plans, group_members, group_date,
+        group_country, group_language, group_boosted, group_boosted_by,
+        group_monetization_discount_enabled, group_monetization_discount_percent,
+        is_fake
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),
+        ?,?,?,?,?,?,?)`,
         [
           group_name,
           group_title,
@@ -336,6 +353,13 @@ class GroupController {
           monetization_min_price,
           monetization_plans,
           1, // creator is first member
+          group_country || null,
+          group_language || null,
+          normalizeEnum01(group_boosted),
+          group_boosted_by || null,
+          normalizeEnum01(group_monetization_discount_enabled),
+          group_monetization_discount_percent || 0,
+          normalizeEnum01(is_fake),
         ]
       );
 

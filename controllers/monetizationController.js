@@ -298,3 +298,74 @@ exports.getWithdrawals = async (req, res) => {
   );
   res.json({ success: true, data: history });
 };
+
+// ==================== COUPONS ====================
+
+exports.createCoupon = async (req, res) => {
+  try {
+    const { code, title, description, discount_type, discount_value, expire_at, usage_limit } = req.body;
+    if (!code || !discount_type || discount_value === undefined) {
+      return res.status(400).json({ success: false, message: "Code, discount_type, and discount_value are required" });
+    }
+    const [result] = await pool.query(
+      `INSERT INTO monetization_coupons (code, title, description, discount_type, discount_value, expire_at, usage_limit)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [code.toUpperCase().trim(), title || null, description || null, discount_type, parseFloat(discount_value), expire_at || null, usage_limit || 0]
+    );
+    res.status(201).json({ success: true, coupon_id: result.insertId });
+  } catch (err) {
+    console.error("createCoupon error:", err);
+    res.status(500).json({ success: false, message: "Failed to create coupon" });
+  }
+};
+
+exports.getCoupons = async (req, res) => {
+  try {
+    const [coupons] = await pool.query("SELECT * FROM monetization_coupons ORDER BY created_at DESC");
+    res.json({ success: true, data: coupons });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch coupons" });
+  }
+};
+
+exports.redeemCoupon = async (req, res) => {
+  try {
+    const { code } = req.body;
+    const userId = req.user.id;
+    if (!code) return res.status(400).json({ success: false, message: "Coupon code is required" });
+
+    const [[coupon]] = await pool.query("SELECT * FROM monetization_coupons WHERE code = ?", [code.toUpperCase().trim()]);
+    if (!coupon) return res.status(404).json({ success: false, message: "Invalid coupon code" });
+
+    // Check expiry
+    if (coupon.expire_at && new Date(coupon.expire_at) < new Date()) {
+      return res.status(400).json({ success: false, message: "Coupon has expired" });
+    }
+
+    // Check usage limit
+    if (coupon.usage_limit > 0) {
+      const [[{ count }]] = await pool.query("SELECT COUNT(*) as count FROM monetization_coupons_users WHERE coupon_id = ?", [coupon.coupon_id]);
+      if (count >= coupon.usage_limit) {
+        return res.status(400).json({ success: false, message: "Coupon usage limit reached" });
+      }
+    }
+
+    // Check if user already redeemed
+    const [[existing]] = await pool.query("SELECT 1 FROM monetization_coupons_users WHERE coupon_id = ? AND user_id = ?", [coupon.coupon_id, userId]);
+    if (existing) return res.status(400).json({ success: false, message: "Coupon already redeemed" });
+
+    await pool.query("INSERT INTO monetization_coupons_users (coupon_id, user_id) VALUES (?, ?)", [coupon.coupon_id, userId]);
+
+    res.json({
+      success: true,
+      message: "Coupon redeemed successfully",
+      coupon: {
+        discount_type: coupon.discount_type,
+        discount_value: coupon.discount_value,
+      }
+    });
+  } catch (err) {
+    console.error("redeemCoupon error:", err);
+    res.status(500).json({ success: false, message: "Failed to redeem coupon" });
+  }
+};

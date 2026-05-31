@@ -58,6 +58,12 @@ async function updateUserProfileController(req, res) {
     user_edu_school,
     user_edu_class,
     user_country,
+    // New privacy & settings fields
+    user_privacy_chat,
+    user_privacy_collaborative,
+    user_monetization_discount_enabled,
+    user_monetization_discount_percent,
+    user_approved,
   } = req.body;
 
   console.log("updateUserProfileController: Incoming Request Body:", req.body);
@@ -75,6 +81,11 @@ async function updateUserProfileController(req, res) {
     user_edu_school: Joi.string().max(100).allow("").optional(),
     user_edu_class: Joi.string().max(100).allow("").optional(),
     user_country: Joi.number().integer().positive().optional(),
+    user_privacy_chat: Joi.string().valid("me", "friends", "public").optional(),
+    user_privacy_collaborative: Joi.string().valid("me", "friends", "public").optional(),
+    user_monetization_discount_enabled: Joi.string().valid("0", "1").optional(),
+    user_monetization_discount_percent: Joi.number().min(0).max(100).optional(),
+    user_approved: Joi.string().valid("0", "1").optional(),
   });
 
   const { error } = schema.validate(req.body);
@@ -100,6 +111,11 @@ async function updateUserProfileController(req, res) {
       user_edu_school,
       user_edu_class,
       user_country,
+      user_privacy_chat,
+      user_privacy_collaborative,
+      user_monetization_discount_enabled,
+      user_monetization_discount_percent,
+      user_approved,
     };
 
     // Remove undefined fields

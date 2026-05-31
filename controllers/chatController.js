@@ -303,13 +303,22 @@ class ChatController {
 
       // Get messages with user info
       const query = `
-        SELECT 
+        SELECT
           cm.message_id,
           cm.conversation_id,
           cm.user_id,
           cm.message,
           cm.image,
           cm.voice_note,
+          cm.video,
+          cm.product_post_id,
+          cm.reaction_like_count,
+          cm.reaction_love_count,
+          cm.reaction_haha_count,
+          cm.reaction_yay_count,
+          cm.reaction_wow_count,
+          cm.reaction_sad_count,
+          cm.reaction_angry_count,
           cm.time,
           u.user_id as user_user_id,
           u.user_name,
@@ -387,7 +396,7 @@ class ChatController {
   static async sendMessage(req, res) {
     // Get conversation_id from params
     const { conversation_id } = req.params;
-    const { message } = req.body; // Only message from body
+    const { message, product_post_id, video } = req.body;
     const user_id = req.user?.user_id || req.user?.id;
     const file = req.file; // Get uploaded file
 
@@ -485,17 +494,19 @@ class ChatController {
 
       // Insert message
       const query = `
-      INSERT INTO conversations_messages 
-      (conversation_id, user_id, message, image, voice_note, time) 
-      VALUES (?, ?, ?, ?, ?, NOW())
+      INSERT INTO conversations_messages
+      (conversation_id, user_id, message, image, voice_note, video, product_post_id, time)
+      VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
     `;
 
       const [result] = await db.query(query, [
         conversation_id,
         user_id,
-        message || "", // Use message from body or empty string
-        imagePath, // Can be null
-        voiceNotePath, // Can be null
+        message || "",
+        imagePath,
+        voiceNotePath,
+        video || null,
+        product_post_id ? parseInt(product_post_id) : null,
       ]);
 
       const messageId = result.insertId;
@@ -518,13 +529,22 @@ class ChatController {
 
       // Get full message with user info
       const [messageWithUser] = await db.query(
-        `SELECT 
+        `SELECT
         cm.message_id,
         cm.conversation_id,
         cm.user_id,
         cm.message,
         cm.image,
         cm.voice_note,
+        cm.video,
+        cm.product_post_id,
+        cm.reaction_like_count,
+        cm.reaction_love_count,
+        cm.reaction_haha_count,
+        cm.reaction_yay_count,
+        cm.reaction_wow_count,
+        cm.reaction_sad_count,
+        cm.reaction_angry_count,
         cm.time,
         u.user_name,
         u.user_picture,

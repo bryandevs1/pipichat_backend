@@ -222,6 +222,16 @@ class EventsController {
         event_tickets_link,
         event_prices,
         chatbox_enabled = "0",
+        event_latitude,
+        event_longitude,
+        event_country,
+        event_language,
+        event_is_online = "0",
+        event_boosted = "0",
+        event_boosted_by,
+        event_is_sponsored = "0",
+        event_sponsor_name,
+        event_sponsor_url,
       } = req.body;
 
       // Validate required fields
@@ -271,8 +281,13 @@ class EventsController {
           event_end_date, event_publish_enabled, event_publish_approval_enabled,
           event_cover, chatbox_enabled, event_tickets_link,
           event_prices, event_invited, event_interested, event_going,
-          event_rate, event_date
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,0,0,0,NOW())`,
+          event_rate, event_date,
+          event_latitude, event_longitude,
+          event_country, event_language,
+          event_is_online, event_boosted, event_boosted_by,
+          event_is_sponsored, event_sponsor_name, event_sponsor_url
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,0,0,0,NOW(),
+          ?,?,?,?,?,?,?,?,?,?)`,
         [
           event_privacy,
           userId,
@@ -288,6 +303,16 @@ class EventsController {
           normalizeEnum01(chatbox_enabled),
           event_tickets_link || null,
           event_prices || null,
+          event_latitude || null,
+          event_longitude || null,
+          event_country || null,
+          event_language || null,
+          normalizeEnum01(event_is_online),
+          normalizeEnum01(event_boosted),
+          event_boosted_by || null,
+          normalizeEnum01(event_is_sponsored),
+          event_sponsor_name || null,
+          event_sponsor_url || null,
         ],
       );
 

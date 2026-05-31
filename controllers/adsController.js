@@ -473,6 +473,18 @@ class AdsController {
         throw new ValidationAdsError("An ad image is required");
       }
 
+      // ── Video upload (optional) ──────────────────────────────
+      let adsVideoPath = null;
+      if (req.files?.ads_video?.[0]) {
+        const uploaded = await storageManager.upload(
+          req.files.ads_video[0],
+          "ads",
+        );
+        adsVideoPath = uploaded?.url || uploaded?.path || String(uploaded);
+      } else if (req.body.ads_video_url) {
+        adsVideoPath = req.body.ads_video_url;
+      }
+
       // ── Insert campaign ──────────────────────────────────────
       const [result] = await pool.query(
         `INSERT INTO ads_campaigns
@@ -484,11 +496,11 @@ class AdsController {
             ads_title, ads_description,
             ads_type, ads_url,
             ads_page, ads_group, ads_event,
-            ads_placement, ads_image,
+            ads_placement, ads_image, ads_video,
             campaign_created_date,
             campaign_is_active, campaign_is_approved, campaign_is_declined,
             campaign_views, campaign_clicks)
-   VALUES (?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),'1','1','0',0,0)`,
+   VALUES (?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),'1','1','0',0,0)`,
         [
           userId,
           campaign_title.trim(),
@@ -508,6 +520,7 @@ class AdsController {
           ads_event ? parseInt(ads_event) : null,
           ads_placement,
           adsImagePath,
+          adsVideoPath,
         ],
       );
 

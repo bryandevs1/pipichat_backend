@@ -44,6 +44,9 @@ const eventsRoutes = require("./routes/eventRoutes");
 const adsRoutes = require("./routes/adsRoutes");
 const webhooksRoutes = require("./routes/webhooks");
 const membershipRoutes = require("./routes/membershipRoutes");
+const reelRoutes = require("./routes/reelRoutes");
+const courseRoutes = require("./routes/courseRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 dotenv.config();
 const app = express();
@@ -141,6 +144,9 @@ app.use("/api/events", eventsRoutes);
 app.use("/api/ads", adsRoutes);
 app.use("/api/webhooks", webhooksRoutes);
 app.use("/api/membership", membershipRoutes);
+app.use("/api/reels", reelRoutes);
+app.use("/api/courses", courseRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 // Global error handler (captures 413 + multer limits with clear logs)
 app.use((err, req, res, next) => {

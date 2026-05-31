@@ -16,6 +16,7 @@ exports.postStory = async (req, res) => {
 
   try {
     const text = req.body.text ? String(req.body.text).trim() : "";
+    const is_ads = req.body.is_ads === "1" || req.body.is_ads === 1 ? "1" : "0";
     file = req.file;
     const user_id = req.user?.id || req.userId;
 
@@ -113,9 +114,9 @@ exports.postStory = async (req, res) => {
     } else {
       // Create new story
       const [storyResult] = await db.query(
-        `INSERT INTO stories (user_id, is_ads, time, media_count) 
+        `INSERT INTO stories (user_id, is_ads, time, media_count)
          VALUES (?, ?, ?, ?)`,
-        [user_id, "0", new Date(), 1]
+        [user_id, is_ads, new Date(), 1]
       );
 
       story_id = storyResult.insertId;

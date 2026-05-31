@@ -201,6 +201,12 @@ class PagesController {
         page_monetization_enabled = "0",
         page_monetization_min_price = 0,
         page_monetization_plans = 0,
+        page_boosted = "0",
+        page_boosted_by,
+        page_monetization_discount_enabled = "0",
+        page_monetization_discount_percent = 0,
+        page_pbid,
+        is_fake = "0",
       } = req.body;
 
       // Validate required fields
@@ -278,15 +284,19 @@ class PagesController {
     page_social_twitter, page_social_youtube, page_social_instagram,
     page_social_linkedin, page_social_vkontakte, page_likes,
     page_monetization_enabled, page_monetization_min_price,
-    page_monetization_plans, page_rate, page_date
-  ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())`,
+    page_monetization_plans, page_rate, page_date,
+    page_boosted, page_boosted_by,
+    page_monetization_discount_enabled, page_monetization_discount_percent,
+    page_pbid, is_fake
+  ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),
+    ?,?,?,?,?,?)`,
         [
           userId,
           page_category,
           page_name,
           page_title,
-          pagePictureResult ? pagePictureResult.path : null, // Use result.path directly
-          pageCoverResult ? pageCoverResult.path : null, // Use result.path directly
+          pagePictureResult ? pagePictureResult.path : null,
+          pageCoverResult ? pageCoverResult.path : null,
           req.body.page_cover_position || "center",
           "0",
           page_tips_enabled,
@@ -310,6 +320,12 @@ class PagesController {
           page_monetization_min_price,
           page_monetization_plans,
           0.0,
+          normalizeEnum01(page_boosted),
+          page_boosted_by || null,
+          normalizeEnum01(page_monetization_discount_enabled),
+          page_monetization_discount_percent || 0,
+          page_pbid || null,
+          normalizeEnum01(is_fake),
         ],
       );
 

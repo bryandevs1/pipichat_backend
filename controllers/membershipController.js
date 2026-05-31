@@ -54,7 +54,11 @@ const getAllPackages = async (req, res) => {
         boost_pages,
         allowed_blogs_categories,
         allowed_videos_categories,
-        allowed_products
+        allowed_products,
+        package_hidden,
+        free_points,
+        boost_events_enabled,
+        boost_events
       FROM packages
       ORDER BY package_order ASC
     `;

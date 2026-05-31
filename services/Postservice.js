@@ -33,6 +33,15 @@ class PostService {
     paidText = null,
     forSubscriptions = false,
     tipsEnabled = false,
+    // New columns
+    isCollaborative = false,
+    collaborativePercent = 0,
+    isSchedule = false,
+    isPaidLocked = false,
+    paidImage = null,
+    postLatitude = null,
+    postLongitude = null,
+    subscriptionsImage = null,
   }) {
     const connection = await pool.getConnection();
 
@@ -49,8 +58,11 @@ class PostService {
           is_anonymous, for_adult, comments_disabled,
           is_paid, post_price, paid_text,
           for_subscriptions, tips_enabled,
+          is_collaborative, collaborative_percent,
+          is_schedule, is_paid_locked, paid_image,
+          post_latitude, post_longitude, subscriptions_image,
           has_approved
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           userType,
@@ -77,6 +89,14 @@ class PostService {
           paidText || null,
           forSubscriptions ? "1" : "0",
           tipsEnabled ? "1" : "0",
+          isCollaborative ? "1" : "0",
+          collaborativePercent || 0,
+          isSchedule ? "1" : "0",
+          isPaidLocked ? "1" : "0",
+          paidImage || null,
+          postLatitude || null,
+          postLongitude || null,
+          subscriptionsImage || null,
           "1",
         ],
       );
@@ -156,6 +176,9 @@ class PostService {
           p.reaction_like_count, p.reaction_love_count, p.reaction_haha_count,
           p.reaction_yay_count, p.reaction_wow_count, p.reaction_sad_count,
           p.reaction_angry_count,
+          p.is_collaborative, p.collaborative_percent,
+          p.is_schedule, p.is_paid_locked, p.paid_image,
+          p.post_latitude, p.post_longitude, p.subscriptions_image,
 
           cp.type AS pattern_type, cp.background_image,
           cp.background_color_1, cp.background_color_2, cp.text_color,
@@ -168,9 +191,9 @@ class PostService {
           COALESCE(u.user_verified, pg.page_verified) AS author_verified,
           CASE WHEN p.user_type = 'page' THEN pg.page_id ELSE u.user_id END AS author_id,
           p.user_type AS author_type,
-          CASE 
+          CASE
             WHEN p.user_type = 'user' AND EXISTS(
-              SELECT 1 FROM packages_payments 
+              SELECT 1 FROM packages_payments
               WHERE user_id = u.user_id
             ) THEN 1
             ELSE 0
@@ -191,6 +214,10 @@ class PostService {
           EXISTS(SELECT 1 FROM posts_polls    WHERE post_id = p.post_id) AS has_poll,
           EXISTS(SELECT 1 FROM posts_funding  WHERE post_id = p.post_id) AS has_funding,
           EXISTS(SELECT 1 FROM posts_offers WHERE post_id = p.post_id) AS has_offer,
+          EXISTS(SELECT 1 FROM posts_reels    WHERE post_id = p.post_id) AS has_reel,
+          EXISTS(SELECT 1 FROM posts_courses  WHERE post_id = p.post_id) AS has_course,
+          EXISTS(SELECT 1 FROM posts_merits   WHERE post_id = p.post_id) AS has_merit,
+          EXISTS(SELECT 1 FROM posts_collaborative_users WHERE post_id = p.post_id) AS has_collaborative,
 
           EXISTS(SELECT 1 FROM posts_live     WHERE post_id = p.post_id AND live_ended = '0') AS has_live,
           (cp.pattern_id IS NOT NULL) AS has_colored_pattern
@@ -303,6 +330,9 @@ class PostService {
         p.reaction_like_count, p.reaction_love_count, p.reaction_haha_count,
         p.reaction_yay_count, p.reaction_wow_count, p.reaction_sad_count,
         p.reaction_angry_count,
+        p.is_collaborative, p.collaborative_percent,
+        p.is_schedule, p.is_paid_locked, p.paid_image,
+        p.post_latitude, p.post_longitude, p.subscriptions_image,
 
         cp.type AS pattern_type, cp.background_image,
         cp.background_color_1, cp.background_color_2, cp.text_color,
@@ -327,6 +357,11 @@ class PostService {
         EXISTS(SELECT 1 FROM posts_jobs     WHERE post_id = p.post_id) AS has_job,
         EXISTS(SELECT 1 FROM posts_polls    WHERE post_id = p.post_id) AS has_poll,
         EXISTS(SELECT 1 FROM posts_funding  WHERE post_id = p.post_id) AS has_funding,
+        EXISTS(SELECT 1 FROM posts_offers   WHERE post_id = p.post_id) AS has_offer,
+        EXISTS(SELECT 1 FROM posts_reels    WHERE post_id = p.post_id) AS has_reel,
+        EXISTS(SELECT 1 FROM posts_courses  WHERE post_id = p.post_id) AS has_course,
+        EXISTS(SELECT 1 FROM posts_merits   WHERE post_id = p.post_id) AS has_merit,
+        EXISTS(SELECT 1 FROM posts_collaborative_users WHERE post_id = p.post_id) AS has_collaborative,
         EXISTS(SELECT 1 FROM posts_live     WHERE post_id = p.post_id AND live_ended = '0') AS has_live,
         (cp.pattern_id IS NOT NULL) AS has_colored_pattern
 
@@ -522,6 +557,10 @@ class PostService {
       const needFunding = rows.some((r) => Number(r.has_funding) === 1);
       const needLive = rows.some((r) => Number(r.has_live) === 1);
       const needOffers = rows.some((r) => Number(r.has_offer) === 1);
+      const needReels = rows.some((r) => Number(r.has_reel) === 1);
+      const needCourses = rows.some((r) => Number(r.has_course) === 1);
+      const needMerits = rows.some((r) => Number(r.has_merit) === 1);
+      const needCollaborative = rows.some((r) => Number(r.has_collaborative) === 1);
 
       let photosMap = new Map();
       let videosMap = new Map();
@@ -535,6 +574,10 @@ class PostService {
       let fundingMap = new Map();
       let liveMap = new Map();
       let offersMap = new Map();
+      let reelsMap = new Map();
+      let coursesMap = new Map();
+      let meritsMap = new Map();
+      let collaborativeMap = new Map();
 
       if (needPhotos) {
         const [photos] = await connection.query(
@@ -650,6 +693,47 @@ class PostService {
         live.forEach((l) => liveMap.set(l.post_id, l));
       }
 
+      if (needReels) {
+        const [reels] = await connection.query(
+          `SELECT post_id, reel_id, reel_url, thumb, duration FROM posts_reels WHERE post_id IN (?)`,
+          [postIds],
+        );
+        reels.forEach((r) => {
+          if (!reelsMap.has(r.post_id)) reelsMap.set(r.post_id, []);
+          reelsMap.get(r.post_id).push(r);
+        });
+      }
+
+      if (needCourses) {
+        const [courses] = await connection.query(
+          `SELECT post_id, course_id, title, description, price, created_at FROM posts_courses WHERE post_id IN (?)`,
+          [postIds],
+        );
+        courses.forEach((c) => coursesMap.set(c.post_id, c));
+      }
+
+      if (needMerits) {
+        const [merits] = await connection.query(
+          `SELECT post_id, merit_id, reason, points, awarded_to, awarded_by, created_at FROM posts_merits WHERE post_id IN (?)`,
+          [postIds],
+        );
+        merits.forEach((m) => meritsMap.set(m.post_id, m));
+      }
+
+      if (needCollaborative) {
+        const [collaborativeUsers] = await connection.query(
+          `SELECT pc.post_id, pc.user_id, pc.collaborative_percent, u.user_name, u.user_firstname, u.user_picture
+           FROM posts_collaborative_users pc
+           LEFT JOIN users u ON pc.user_id = u.user_id
+           WHERE pc.post_id IN (?)`,
+          [postIds],
+        );
+        collaborativeUsers.forEach((cu) => {
+          if (!collaborativeMap.has(cu.post_id)) collaborativeMap.set(cu.post_id, []);
+          collaborativeMap.get(cu.post_id).push(cu);
+        });
+      }
+
       return rows.map((row) =>
         this.formatPost(
           row,
@@ -665,6 +749,10 @@ class PostService {
           fundingMap,
           liveMap,
           offersMap,
+          reelsMap,
+          coursesMap,
+          meritsMap,
+          collaborativeMap,
         ),
       );
     } finally {
@@ -690,6 +778,10 @@ class PostService {
     fundingMap,
     liveMap,
     offersMap,
+    reelsMap = new Map(),
+    coursesMap = new Map(),
+    meritsMap = new Map(),
+    collaborativeMap = new Map(),
   ) {
     const photosArr = photosMap.get(row.post_id) || [];
     const videoRow = videosMap.get(row.post_id) || null;
@@ -703,6 +795,10 @@ class PostService {
     const fundingRow = fundingMap.get(row.post_id) || null;
     const liveRow = liveMap.get(row.post_id) || null;
     const offerRow = offersMap.get(row.post_id) || null;
+    const reelsArr = reelsMap.get(row.post_id) || [];
+    const courseRow = coursesMap.get(row.post_id) || null;
+    const meritRow = meritsMap.get(row.post_id) || null;
+    const collaborativeUsers = collaborativeMap.get(row.post_id) || [];
 
     const raisedAmount = parseFloat(fundingRow?.raised_amount) || 0;
     const goalAmount = parseFloat(fundingRow?.amount) || 0;
@@ -806,6 +902,20 @@ class PostService {
       has_funding: Number(row.has_funding) === 1,
       has_live: Number(row.has_live) === 1,
       has_colored_pattern: Number(row.has_colored_pattern) === 1,
+      has_reel: Number(row.has_reel) === 1,
+      has_course: Number(row.has_course) === 1,
+      has_merit: Number(row.has_merit) === 1,
+      has_collaborative: Number(row.has_collaborative) === 1,
+      has_offer: Number(row.has_offer) === 1,
+
+      is_collaborative: row.is_collaborative === "1" || row.is_collaborative === 1,
+      collaborative_percent: Number(row.collaborative_percent) || 0,
+      is_schedule: row.is_schedule === "1" || row.is_schedule === 1,
+      is_paid_locked: row.is_paid_locked === "1" || row.is_paid_locked === 1,
+      paid_image: row.paid_image || null,
+      post_latitude: row.post_latitude || null,
+      post_longitude: row.post_longitude || null,
+      subscriptions_image: row.subscriptions_image || null,
 
       photos: photosArr.map((p) => ({ ...p, source: p.source })),
 
@@ -921,6 +1031,38 @@ class PostService {
             text_color: row.text_color,
           }
         : null,
+
+      reels: reelsArr.length > 0 ? reelsArr : null,
+
+      course: courseRow
+        ? {
+            id: courseRow.course_id,
+            title: courseRow.title,
+            description: courseRow.description,
+            price: courseRow.price,
+            created_at: courseRow.created_at,
+          }
+        : null,
+
+      merit: meritRow
+        ? {
+            id: meritRow.merit_id,
+            reason: meritRow.reason,
+            points: meritRow.points,
+            awarded_to: meritRow.awarded_to,
+            awarded_by: meritRow.awarded_by,
+          }
+        : null,
+
+      collaborative_users:
+        collaborativeUsers.length > 0
+          ? collaborativeUsers.map((cu) => ({
+              user_id: cu.user_id,
+              name: cu.user_name || cu.user_firstname,
+              picture: cu.user_picture,
+              percent: cu.collaborative_percent,
+            }))
+          : null,
     };
   }
 
@@ -998,6 +1140,18 @@ class PostService {
         break;
       case "offers":
         conditions = `AND EXISTS(SELECT 1 FROM posts_offers WHERE post_id = p.post_id)
+      AND ((p.user_type = 'user' AND p.in_group = '0' AND u.user_id IS NOT NULL) OR (p.user_type = 'page' AND pg.page_id IS NOT NULL))`;
+        break;
+      case "reels":
+        conditions = `AND EXISTS(SELECT 1 FROM posts_reels WHERE post_id = p.post_id)
+      AND ((p.user_type = 'user' AND p.in_group = '0' AND u.user_id IS NOT NULL) OR (p.user_type = 'page' AND pg.page_id IS NOT NULL))`;
+        break;
+      case "courses":
+        conditions = `AND EXISTS(SELECT 1 FROM posts_courses WHERE post_id = p.post_id)
+      AND ((p.user_type = 'user' AND p.in_group = '0' AND u.user_id IS NOT NULL) OR (p.user_type = 'page' AND pg.page_id IS NOT NULL))`;
+        break;
+      case "merits":
+        conditions = `AND EXISTS(SELECT 1 FROM posts_merits WHERE post_id = p.post_id)
       AND ((p.user_type = 'user' AND p.in_group = '0' AND u.user_id IS NOT NULL) OR (p.user_type = 'page' AND pg.page_id IS NOT NULL))`;
         break;
       default:
@@ -1133,6 +1287,47 @@ class PostService {
             postId,
             files.offerData,
             files.thumbnail,
+          );
+        }
+        break;
+
+      case "reel":
+        if (files.reelData) {
+          result.reelId = await this.handleReel(
+            connection,
+            postId,
+            files.reelData,
+            files.thumbnail,
+          );
+        }
+        break;
+
+      case "course":
+        if (files.courseData) {
+          result.courseId = await this.handleCourse(
+            connection,
+            postId,
+            files.courseData,
+          );
+        }
+        break;
+
+      case "merit":
+        if (files.meritData) {
+          result.meritId = await this.handleMerit(
+            connection,
+            postId,
+            files.meritData,
+          );
+        }
+        break;
+
+      case "collaborative":
+        if (files.collaborativeData) {
+          result.collaborativeIds = await this.handleCollaborative(
+            connection,
+            postId,
+            files.collaborativeData,
           );
         }
         break;
@@ -1276,10 +1471,11 @@ class PostService {
     }
 
     const [result] = await connection.query(
-      `INSERT INTO posts_jobs 
-       (post_id, category_id, title, location, salary_minimum, salary_maximum, 
-        pay_salary_per, type, cover_image, available) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO posts_jobs
+       (post_id, category_id, title, location, salary_minimum, salary_maximum,
+        salary_minimum_currency, salary_maximum_currency,
+        pay_salary_per, type, cover_image, available)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         postId,
         jobData.category_id || null,
@@ -1287,6 +1483,8 @@ class PostService {
         jobData.location || "",
         jobData.salary_minimum || 0,
         jobData.salary_maximum || 0,
+        jobData.salary_minimum_currency || null,
+        jobData.salary_maximum_currency || null,
         jobData.pay_salary_per || "month",
         jobData.type || "full_time",
         coverImagePath,
@@ -1406,6 +1604,72 @@ class PostService {
     return result.insertId;
   }
 
+  static async handleReel(connection, postId, reelData, thumbnailFile) {
+    let thumbnailPath = null;
+    let reelUrl = reelData?.reel_url || null;
+
+    if (thumbnailFile && thumbnailFile[0]) {
+      const thumbFile = thumbnailFile[0];
+      thumbFile.originalname = `reel-thumb-${Date.now()}-${thumbFile.originalname}`;
+      const thumbData = await storageManager.upload(thumbFile, "video-thumbnails");
+      thumbnailPath = thumbData.path;
+    }
+
+    if (reelData?.reel_file) {
+      const reelFile = reelData.reel_file;
+      reelFile.originalname = `reel-${Date.now()}-${reelFile.originalname}`;
+      const reelUpload = await storageManager.upload(reelFile, "post-videos");
+      reelUrl = reelUpload.path;
+    }
+
+    const [result] = await connection.query(
+      `INSERT INTO posts_reels (post_id, reel_url, thumb, duration) VALUES (?, ?, ?, ?)`,
+      [postId, reelUrl, thumbnailPath, reelData?.duration || null],
+    );
+    return result.insertId;
+  }
+
+  static async handleCourse(connection, postId, courseData) {
+    const [result] = await connection.query(
+      `INSERT INTO posts_courses (post_id, title, description, price) VALUES (?, ?, ?, ?)`,
+      [
+        postId,
+        courseData.title || "Untitled Course",
+        courseData.description || null,
+        courseData.price || 0,
+      ],
+    );
+    return result.insertId;
+  }
+
+  static async handleMerit(connection, postId, meritData) {
+    const [result] = await connection.query(
+      `INSERT INTO posts_merits (post_id, reason, points, awarded_to, awarded_by) VALUES (?, ?, ?, ?, ?)`,
+      [
+        postId,
+        meritData.reason || null,
+        meritData.points || 0,
+        meritData.awarded_to || null,
+        meritData.awarded_by || null,
+      ],
+    );
+    return result.insertId;
+  }
+
+  static async handleCollaborative(connection, postId, collaborativeData) {
+    const ids = [];
+    if (collaborativeData.users && Array.isArray(collaborativeData.users)) {
+      for (const user of collaborativeData.users) {
+        const [result] = await connection.query(
+          `INSERT INTO posts_collaborative_users (post_id, user_id, collaborative_percent) VALUES (?, ?, ?)`,
+          [postId, user.user_id, user.collaborative_percent || 0],
+        );
+        ids.push(result.insertId);
+      }
+    }
+    return ids;
+  }
+
   static async handleMedia(connection, postId, mediaData) {
     const [result] = await connection.query(
       `INSERT INTO posts_media (post_id, source_url, source_provider, source_type, source_title) VALUES (?, ?, ?, ?, ?)`,
@@ -1520,6 +1784,15 @@ class PostService {
         break;
       case "media":
         await this.enrichMediaPost(post, postId);
+        break;
+      case "reel":
+        await this.enrichReelPost(post, postId);
+        break;
+      case "course":
+        await this.enrichCoursePost(post, postId);
+        break;
+      case "merit":
+        await this.enrichMeritPost(post, postId);
         break;
       case "profile_picture":
         await this.enrichProfilePicturePost(post, postId);

@@ -170,7 +170,6 @@ async function createUserSession(
   }
 }
 
-module.exports = { createUserSession /* other exports */ };
 async function getUserByEmail(email) {
   try {
     console.log("Fetching user by email:", email);
@@ -204,6 +203,11 @@ async function createUser(userData) {
     user_gender,
     user_birthdate,
     user_registered,
+    user_phone = null,
+    user_country = null,
+    user_referrer_id = null,
+    user_online_status = "offline",
+    user_language = "en_us",
   } = userData;
 
   // Use a 6-digit code for email verification
@@ -212,10 +216,23 @@ async function createUser(userData) {
   try {
     const query = `
       INSERT INTO users (
-        user_name, user_email, user_password, user_firstname, user_lastname, user_gender, user_birthdate, user_registered,
-        user_email_verified, user_email_verification_code
+        user_name,
+        user_email,
+        user_password,
+        user_firstname,
+        user_lastname,
+        user_gender,
+        user_birthdate,
+        user_registered,
+        user_phone,
+        user_country,
+        user_referrer_id,
+        user_online_status,
+        user_language,
+        user_email_verified,
+        user_email_verification_code
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
     `;
     const [result] = await pool.query(query, [
       user_name,
@@ -226,6 +243,11 @@ async function createUser(userData) {
       user_gender,
       user_birthdate,
       user_registered || new Date(),
+      user_phone,
+      user_country,
+      user_referrer_id,
+      user_online_status,
+      user_language,
       emailVerificationCode,
     ]);
     return { userId: result.insertId, emailVerificationCode };
@@ -439,7 +461,35 @@ module.exports = {
   updateUserCoverPicture,
   getUserProfile,
   getUserByIdentifier,
+  addUpload,
+  getUploads,
+  addPendingUpload,
 };
+
+// === Upload helpers for new tables ===
+async function addUpload(userId, source, storageType = null, storageData = null, filename = null) {
+  const [result] = await pool.query(
+    `INSERT INTO users_uploads (user_id, source, storage_type, storage_data, filename, created_at) VALUES (?, ?, ?, ?, ?, NOW())`,
+    [userId, source, storageType, storageData, filename],
+  );
+  return result.insertId;
+}
+
+async function getUploads(userId, limit = 50, offset = 0) {
+  const [rows] = await pool.query(
+    `SELECT * FROM users_uploads WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+    [userId, Number(limit), Number(offset)],
+  );
+  return rows;
+}
+
+async function addPendingUpload(userId, source, storageType = null, storageData = null, filename = null) {
+  const [result] = await pool.query(
+    `INSERT INTO users_uploads_pending (user_id, source, storage_type, storage_data, filename, created_at) VALUES (?, ?, ?, ?, ?, NOW())`,
+    [userId, source, storageType, storageData, filename],
+  );
+  return result.insertId;
+}
 
 async function getUserProfile(userId, currentUserId) {
   console.log("getUserProfile (model): Executing query for userId", {
@@ -453,8 +503,29 @@ async function getUserProfile(userId, currentUserId) {
       u.user_name AS username,
       u.user_firstname AS name,
       u.user_lastname,
+      u.user_email,
+      u.user_phone,
+      u.user_country,
       u.user_picture,
       u.user_cover,
+      u.user_profile_background,
+      u.user_biography,
+      u.user_website,
+      u.user_work_title,
+      u.user_work_place,
+      u.user_work_url,
+      u.user_current_city,
+      u.user_hometown,
+      u.user_edu_major,
+      u.user_edu_school,
+      u.user_edu_class,
+      u.user_social_facebook,
+      u.user_social_twitter,
+      u.user_social_youtube,
+      u.user_social_instagram,
+      u.user_social_twitch,
+      u.user_social_linkedin,
+      u.user_social_vkontakte,
       CASE WHEN u.user_privacy_gender = 'public' OR u.user_id = ? THEN u.user_gender ELSE NULL END AS gender,
       CASE WHEN u.user_privacy_birthdate = 'public' OR u.user_id = ? THEN u.user_birthdate ELSE NULL END AS birthdate,
       CASE WHEN u.user_privacy_location = 'public' OR u.user_id = ? THEN u.user_current_city ELSE NULL END AS current_city,
@@ -467,8 +538,25 @@ async function getUserProfile(userId, currentUserId) {
       CASE WHEN u.user_privacy_other = 'public' OR u.user_id = ? THEN u.user_biography ELSE NULL END AS biography,
       CASE WHEN u.user_privacy_other = 'public' OR u.user_id = ? THEN u.user_website ELSE NULL END AS website,
       u.user_verified,
+      u.user_started,
+      u.user_banned,
+      u.user_approved,
+      u.is_fake,
       u.user_registered,
       u.user_last_seen,
+      u.user_online_status,
+      u.user_last_active,
+      u.user_points,
+      u.user_wallet_balance,
+      u.user_affiliate_balance,
+      u.user_market_balance,
+      u.user_funding_balance,
+      u.user_monetization_enabled,
+      u.user_monetization_chat_price,
+      u.user_monetization_call_price,
+      u.user_monetization_min_price,
+      u.user_monetization_plans,
+      u.user_monetization_balance,
       CASE 
         WHEN EXISTS(
           SELECT 1 FROM packages_payments 
@@ -523,3 +611,27 @@ async function getUserProfile(userId, currentUserId) {
     throw error;
   }
 }
+
+module.exports = {
+  getUserByEmail,
+  fetchUserDetails,
+  findUserByResetKey,
+  updateUserPassword,
+  getRandomUsersWithFriendCounts,
+  updateUserResetKey,
+  createUserSession,
+  createUser,
+  generateVerificationCode,
+  getUserById,
+  updateUserProfile,
+  updateUserPicture,
+  getCountryById,
+  getAllCountries,
+  updateUserNameandEmail,
+  updateUserCoverPicture,
+  getUserProfile,
+  getUserByIdentifier,
+  addUpload,
+  getUploads,
+  addPendingUpload,
+};

@@ -6,15 +6,98 @@ class PostModel {
   static async createPost(postData) {
     const sql = `
       INSERT INTO posts (
-        user_id, post_type, text, privacy, time,
-        reaction_like_count, comments, views, points_earned
-      ) VALUES (?, ?, ?, ?, NOW(), 0, 0, 0, '0')
+        user_id,
+        user_type,
+        in_group,
+        group_id,
+        group_approved,
+        in_event,
+        event_id,
+        event_approved,
+        in_wall,
+        wall_id,
+        post_type,
+        colored_pattern,
+        origin_id,
+        time,
+        location,
+        privacy,
+        text,
+        feeling_action,
+        feeling_value,
+        boosted,
+        boosted_by,
+        comments_disabled,
+        is_hidden,
+        for_adult,
+        is_anonymous,
+        reaction_like_count,
+        reaction_love_count,
+        reaction_haha_count,
+        reaction_yay_count,
+        reaction_wow_count,
+        reaction_sad_count,
+        reaction_angry_count,
+        comments,
+        shares,
+        views,
+        post_rate,
+        points_earned,
+        tips_enabled,
+        for_subscriptions,
+        is_paid,
+        post_price,
+        paid_text,
+        processing,
+        pre_approved,
+        has_approved
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
       postData.user_id,
+      postData.user_type || "user",
+      postData.in_group || "0",
+      postData.group_id || null,
+      postData.group_approved || "1",
+      postData.in_event || "0",
+      postData.event_id || null,
+      postData.event_approved || "1",
+      postData.in_wall || "0",
+      postData.wall_id || null,
       postData.post_type || "normal",
-      postData.text || "",
+      postData.colored_pattern || null,
+      postData.origin_id || null,
+      postData.location || null,
       postData.privacy || "public",
+      postData.text || "",
+      postData.feeling_action || null,
+      postData.feeling_value || null,
+      postData.boosted || "0",
+      postData.boosted_by || null,
+      postData.comments_disabled || "0",
+      postData.is_hidden || "0",
+      postData.for_adult || "0",
+      postData.is_anonymous || "0",
+      Number(postData.reaction_like_count) || 0,
+      Number(postData.reaction_love_count) || 0,
+      Number(postData.reaction_haha_count) || 0,
+      Number(postData.reaction_yay_count) || 0,
+      Number(postData.reaction_wow_count) || 0,
+      Number(postData.reaction_sad_count) || 0,
+      Number(postData.reaction_angry_count) || 0,
+      Number(postData.comments) || 0,
+      Number(postData.shares) || 0,
+      Number(postData.views) || 0,
+      Number(postData.post_rate) || 0,
+      postData.points_earned || "0",
+      postData.tips_enabled || "0",
+      postData.for_subscriptions || "0",
+      postData.is_paid || "0",
+      Number(postData.post_price) || 0,
+      postData.paid_text || null,
+      postData.processing || "0",
+      postData.pre_approved || "1",
+      postData.has_approved || "0",
     ];
 
     const [result] = await db.query(sql, values);
@@ -50,6 +133,21 @@ class PostModel {
         [actualPostId],
       );
       media = photos;
+    } else if (postType.includes("reel")) {
+      const [reels] = await db.query(
+        `
+        SELECT reel_id AS id, reel_url AS url, thumb AS thumbnail, duration, 'reel' AS media_type
+        FROM posts_reels WHERE post_id = ?
+      `,
+        [actualPostId],
+      );
+      media = reels.map((reel) => ({
+        id: reel.id,
+        url: reel.url,
+        thumbnail: reel.thumbnail,
+        duration: reel.duration,
+        media_type: "reel",
+      }));
     } else if (postType.includes("video") || postType === "shared") {
       const [videos] = await db.query(
         `
@@ -87,6 +185,21 @@ class PostModel {
         filename: f.filename,
         media_type: "file",
       }));
+    } else if (postType.includes("course")) {
+      const [courses] = await db.query(
+        `
+        SELECT course_id AS id, course_title AS title, course_price AS price, course_currency AS currency
+        FROM posts_courses WHERE post_id = ?
+      `,
+        [actualPostId],
+      );
+      media = courses.map((course) => ({
+        id: course.id,
+        title: course.title,
+        price: course.price,
+        currency: course.currency,
+        media_type: "course",
+      }));
     }
     // Legacy fallback
     else {
@@ -117,8 +230,12 @@ class PostModel {
       ${PostModel.getAuthorSelect()},
       EXISTS(SELECT 1 FROM posts_photos ph WHERE ph.post_id = p.post_id) AS has_photos,
       EXISTS(SELECT 1 FROM posts_videos pv WHERE pv.post_id = p.post_id) AS has_video,
+      EXISTS(SELECT 1 FROM posts_reels pr WHERE pr.post_id = p.post_id) AS has_reel,
       EXISTS(SELECT 1 FROM posts_audios pa WHERE pa.post_id = p.post_id) AS has_audio,
       EXISTS(SELECT 1 FROM posts_articles part WHERE part.post_id = p.post_id) AS has_article,
+      EXISTS(SELECT 1 FROM posts_courses pc WHERE pc.post_id = p.post_id) AS has_course,
+      EXISTS(SELECT 1 FROM posts_merits pm WHERE pm.post_id = p.post_id) AS has_merit,
+      EXISTS(SELECT 1 FROM posts_collaborative_users pcu WHERE pcu.post_id = p.post_id) AS has_collaborative,
       EXISTS(SELECT 1 FROM posts_live pl WHERE pl.post_id = p.post_id) AS has_live,
 EXISTS(
   SELECT 1 FROM posts_colored_patterns cp 
@@ -255,6 +372,8 @@ EXISTS(
           AND (
             EXISTS(SELECT 1 FROM posts_photos WHERE post_id = p.post_id)
             OR EXISTS(SELECT 1 FROM posts_videos WHERE post_id = p.post_id)
+            OR EXISTS(SELECT 1 FROM posts_reels WHERE post_id = p.post_id)
+            OR EXISTS(SELECT 1 FROM posts_courses WHERE post_id = p.post_id)
             OR p.colored_pattern IS NOT NULL
             OR EXISTS(SELECT 1 FROM posts_live WHERE post_id = p.post_id AND live_ended = '0')
             OR EXISTS(SELECT 1 FROM posts_links WHERE post_id = p.post_id)
@@ -447,10 +566,14 @@ EXISTS(
 
           EXISTS(SELECT 1 FROM posts_photos  ph    WHERE ph.post_id    = p.post_id) AS has_photos,
           EXISTS(SELECT 1 FROM posts_videos  pv    WHERE pv.post_id    = p.post_id) AS has_video,
+          EXISTS(SELECT 1 FROM posts_reels   prl   WHERE prl.post_id   = p.post_id) AS has_reel,
           EXISTS(SELECT 1 FROM posts_audios  pa    WHERE pa.post_id    = p.post_id) AS has_audio,
           EXISTS(SELECT 1 FROM posts_files   pf    WHERE pf.post_id    = p.post_id) AS has_file,
           EXISTS(SELECT 1 FROM posts_links   pl    WHERE pl.post_id    = p.post_id) AS has_link,
           EXISTS(SELECT 1 FROM posts_articles part WHERE part.post_id  = p.post_id) AS has_article,
+          EXISTS(SELECT 1 FROM posts_courses  pc    WHERE pc.post_id   = p.post_id) AS has_course,
+          EXISTS(SELECT 1 FROM posts_merits   pm    WHERE pm.post_id   = p.post_id) AS has_merit,
+          EXISTS(SELECT 1 FROM posts_collaborative_users pcu WHERE pcu.post_id = p.post_id) AS has_collaborative,
           EXISTS(SELECT 1 FROM posts_products pprod WHERE pprod.post_id = p.post_id) AS has_product,
           EXISTS(SELECT 1 FROM posts_jobs     pj   WHERE pj.post_id    = p.post_id) AS has_job,
           EXISTS(SELECT 1 FROM posts_polls    pp   WHERE pp.post_id    = p.post_id) AS has_poll,
@@ -673,6 +796,8 @@ EXISTS(
         AND (
           EXISTS(SELECT 1 FROM posts_photos WHERE post_id = p.post_id)
           OR EXISTS(SELECT 1 FROM posts_videos WHERE post_id = p.post_id)
+          OR EXISTS(SELECT 1 FROM posts_reels WHERE post_id = p.post_id)
+          OR EXISTS(SELECT 1 FROM posts_courses WHERE post_id = p.post_id)
           OR p.colored_pattern IS NOT NULL
           OR EXISTS(SELECT 1 FROM posts_live WHERE post_id = p.post_id AND live_ended = '0')
           OR EXISTS(SELECT 1 FROM posts_links WHERE post_id = p.post_id)
@@ -892,11 +1017,15 @@ EXISTS(
     try {
       const needPhotos = rows.some((r) => Number(r.has_photos) === 1);
       const needVideos = rows.some((r) => Number(r.has_video) === 1);
+      const needReels = rows.some((r) => Number(r.has_reel) === 1);
       const needAudios = rows.some((r) => Number(r.has_audio) === 1);
       const needFiles = rows.some((r) => Number(r.has_file) === 1);
       const needLinks = rows.some((r) => Number(r.has_link) === 1);
       const needPolls = rows.some((r) => Number(r.has_poll) === 1);
       const needArticles = rows.some((r) => Number(r.has_article) === 1);
+      const needCourses = rows.some((r) => Number(r.has_course) === 1);
+      const needMerits = rows.some((r) => Number(r.has_merit) === 1);
+      const needCollaborative = rows.some((r) => Number(r.has_collaborative) === 1);
       const needProducts = rows.some((r) => Number(r.has_product) === 1);
       const needJobs = rows.some((r) => Number(r.has_job) === 1);
       const needLive = rows.some((r) => Number(r.has_live) === 1);
@@ -949,6 +1078,19 @@ EXISTS(
           [postIds],
         );
         videosMap = new Map(videos.map((v) => [v.post_id, v]));
+      }
+
+      let reelsMap = new Map();
+      if (needReels) {
+        const [reels] = await connection.query(
+          `
+          SELECT post_id, reel_id, reel_url, thumb, duration
+          FROM posts_reels
+          WHERE post_id IN (?)
+          `,
+          [postIds],
+        );
+        reelsMap = new Map(reels.map((r) => [r.post_id, r]));
       }
 
       // Audios
@@ -1021,6 +1163,51 @@ EXISTS(
         articlesMap = new Map(articles.map((a) => [a.post_id, a]));
       }
 
+      let coursesMap = new Map();
+      if (needCourses) {
+        const [courses] = await connection.query(
+          `
+          SELECT post_id, course_id, course_title, course_price, course_currency
+          FROM posts_courses
+          WHERE post_id IN (?)
+          `,
+          [postIds],
+        );
+        coursesMap = new Map(courses.map((c) => [c.post_id, c]));
+      }
+
+      let meritsMap = new Map();
+      if (needMerits) {
+        const [merits] = await connection.query(
+          `
+          SELECT post_id, merit_id, merit_type, merit_value, user_id
+          FROM posts_merits
+          WHERE post_id IN (?)
+          `,
+          [postIds],
+        );
+        meritsMap = new Map(merits.map((m) => [m.post_id, m]));
+      }
+
+      let collaborativeMap = new Map();
+      if (needCollaborative) {
+        const [collaborativeUsers] = await connection.query(
+          `
+          SELECT post_id, user_id, percent
+          FROM posts_collaborative_users
+          WHERE post_id IN (?)
+          `,
+          [postIds],
+        );
+
+        const grouped = new Map();
+        for (const item of collaborativeUsers) {
+          if (!grouped.has(item.post_id)) grouped.set(item.post_id, []);
+          grouped.get(item.post_id).push(item);
+        }
+        collaborativeMap = grouped;
+      }
+
       // Products
       let productsMap = new Map();
       if (needProducts) {
@@ -1068,11 +1255,15 @@ EXISTS(
           row,
           photosMap,
           videosMap,
+          reelsMap,
           audiosMap,
           filesMap,
           linksMap,
           pollsMap,
           articlesMap,
+          coursesMap,
+          meritsMap,
+          collaborativeMap,
           productsMap,
           jobsMap,
           liveMap,
@@ -1090,22 +1281,30 @@ EXISTS(
     row,
     photosMap,
     videosMap,
+    reelsMap,
     audiosMap,
     filesMap,
     linksMap,
     pollsMap,
     articlesMap,
+    coursesMap,
+    meritsMap,
+    collaborativeMap,
     productsMap,
     jobsMap,
     liveMap,
   ) {
     const photosArr = photosMap.get(row.post_id) || [];
     const videoRow = videosMap.get(row.post_id) || null;
+    const reelRow = reelsMap.get(row.post_id) || null;
     const audioRow = audiosMap.get(row.post_id) || null;
     const fileRow = filesMap.get(row.post_id) || null;
     const linkRow = linksMap.get(row.post_id) || null;
     const pollRow = pollsMap.get(row.post_id) || null;
     const articleRow = articlesMap.get(row.post_id) || null;
+    const courseRow = coursesMap.get(row.post_id) || null;
+    const meritRow = meritsMap.get(row.post_id) || null;
+    const collaborativeRows = collaborativeMap.get(row.post_id) || [];
     const productRow = productsMap.get(row.post_id) || null;
     const jobRow = jobsMap.get(row.post_id) || null;
     const liveRow = liveMap.get(row.post_id) || null;
@@ -1163,10 +1362,14 @@ EXISTS(
 
       has_photos: Number(row.has_photos) === 1,
       has_video: Number(row.has_video) === 1,
+      has_reel: Number(row.has_reel) === 1,
       has_audio: Number(row.has_audio) === 1,
       has_file: Number(row.has_file) === 1,
       has_link: Number(row.has_link) === 1,
       has_article: Number(row.has_article) === 1,
+      has_course: Number(row.has_course) === 1,
+      has_merit: Number(row.has_merit) === 1,
+      has_collaborative: Number(row.has_collaborative) === 1,
       has_product: Number(row.has_product) === 1,
       has_job: Number(row.has_job) === 1,
       has_poll: Number(row.has_poll) === 1,
@@ -1180,6 +1383,15 @@ EXISTS(
             id: videoRow.video_id,
             source: videoRow.source,
             thumbnail: videoRow.thumbnail,
+          }
+        : null,
+
+      reel: reelRow
+        ? {
+            id: reelRow.reel_id,
+            url: reelRow.reel_url,
+            thumbnail: reelRow.thumb,
+            duration: reelRow.duration,
           }
         : null,
 
@@ -1217,6 +1429,26 @@ EXISTS(
             text: articleRow.text,
           }
         : null,
+
+      course: courseRow
+        ? {
+            id: courseRow.course_id,
+            title: courseRow.course_title,
+            price: courseRow.course_price,
+            currency: courseRow.course_currency,
+          }
+        : null,
+
+      merit: meritRow
+        ? {
+            id: meritRow.merit_id,
+            type: meritRow.merit_type,
+            value: meritRow.merit_value,
+            user_id: meritRow.user_id,
+          }
+        : null,
+
+      collaborative_users: collaborativeRows,
 
       product: productRow
         ? {
