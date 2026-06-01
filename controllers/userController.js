@@ -1048,15 +1048,15 @@ const getUserSessions = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Fetch sessions correctly
     const [sessions] = await db.query(
-      "SELECT session_id AS id, user_browser AS browser, user_os AS os FROM users_sessions WHERE user_id = ?",
+      `SELECT session_id AS id, user_browser AS location, user_os AS os,
+              user_os_version AS os_version, user_device_name AS device_name,
+              user_ip AS ip, session_date AS date
+       FROM users_sessions WHERE user_id = ?`,
       [userId],
     );
 
-    console.log("✅ Clean Sessions Data:", sessions); // Debugging
-
-    return res.status(200).json({ success: true, sessions }); // Flatten response
+    return res.status(200).json({ success: true, sessions });
   } catch (error) {
     console.error("❌ Error fetching sessions:", error);
     return res.status(500).json({ success: false, message: "Server error" });

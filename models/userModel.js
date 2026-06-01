@@ -139,22 +139,22 @@ async function createUserSession(
   userAgentInfo,
 ) {
   try {
-    const { browser, os, osVersion, deviceName } = userAgentInfo;
+    const { location, os, osVersion, deviceName } = userAgentInfo;
 
     // Delete any previous session for this user
     await pool.query("DELETE FROM users_sessions WHERE user_id = ?", [userId]);
 
     // Insert new session record with both tokens
     await pool.query(
-      `INSERT INTO users_sessions 
-      (user_id, session_token, refresh_token, session_date, session_type, user_ip, user_browser, user_os, user_os_version, user_device_name) 
+      `INSERT INTO users_sessions
+      (user_id, session_token, refresh_token, session_date, session_type, user_ip, user_browser, user_os, user_os_version, user_device_name)
       VALUES (?, ?, ?, NOW(), 'W', ?, ?, ?, ?, ?)`,
       [
         userId,
         accessToken,
         refreshToken,
         userIp,
-        browser,
+        location,
         os,
         osVersion,
         deviceName,

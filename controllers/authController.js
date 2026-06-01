@@ -135,11 +135,24 @@ async function login(req, res) {
       "Unknown";
 
     const parser = new UAParser(req.headers["user-agent"]);
+    let location = "Unknown";
+    try {
+      const locRes = await fetch(`http://ip-api.com/json/${userIp}?fields=city,country`);
+      const locData = await locRes.json();
+      if (locData.city && locData.country) {
+        location = `${locData.city}, ${locData.country}`;
+      } else if (locData.country) {
+        location = locData.country;
+      }
+    } catch (e) {
+      console.log("Geolocation fetch failed:", e.message);
+    }
+
     const userAgentInfo = {
-      browser: parser.getBrowser().name || "Unknown",
+      location,
       os: parser.getOS().name || "Unknown",
       osVersion: parser.getOS().version || "Unknown",
-      deviceName: parser.getDevice().model || "Unknown",
+      deviceName: parser.getDevice().model || parser.getOS().name || "Unknown",
     };
 
     await createUserSession(
