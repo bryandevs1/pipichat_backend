@@ -590,6 +590,25 @@ class ChatController {
         );
       }
 
+      // 🔥 Emit real-time message event via Socket.IO
+      const io = (() => {
+        try { return require("../index").io; }
+        catch { return null; }
+      })();
+      if (io && messageWithUser[0]) {
+        const msgData = messageWithUser[0];
+        const emitEvent = {
+          conversationId: conversation_id,
+          message: msgData,
+          fromUserId: user_id,
+          time: new Date().toISOString(),
+        };
+        for (const otherUser of otherUsers) {
+          io.to(`user_${otherUser.user_id}`).emit("new-message", emitEvent);
+        }
+        io.to(`user_${user_id}`).emit("new-message", emitEvent);
+      }
+
       console.log(`✅ Message sent successfully (ID: ${messageId})`);
 
       return res.status(201).json({
