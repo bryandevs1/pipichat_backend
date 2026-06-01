@@ -32,6 +32,8 @@ const postController = {
         post_price,
         paid_text,
         location,
+        post_latitude,
+        post_longitude,
         feeling_action,
         feeling_value,
         colored_pattern,
@@ -70,6 +72,8 @@ const postController = {
         isPaid: is_paid === true || is_paid === "true",
         postPrice: post_price ? parseFloat(post_price) : 0,
         paidText: paid_text || null,
+        postLatitude: post_latitude ?? "0",
+        postLongitude: post_longitude ?? "0",
         files: {
           photos: req.files?.photos || [],
           videos: req.files?.videos || [],
