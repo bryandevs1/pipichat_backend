@@ -134,15 +134,50 @@ async function login(req, res) {
       req.socket.remoteAddress ||
       "Unknown";
 
+    // Use device name sent from frontend (expo-device) if available, else fallback to UA parsing
+    const deviceName = req.body.device_name || (() => {
+      try {
+        const parser = new UAParser(req.headers["user-agent"]);
+        return parser.getDevice().model || parser.getOS().name || "Unknown";
+      } catch { return "Unknown"; }
+    })();
+
     const parser = new UAParser(req.headers["user-agent"]);
     let location = "Unknown";
     try {
-      const locRes = await fetch(`http://ip-api.com/json/${userIp}?fields=city,country`);
-      const locData = await locRes.json();
-      if (locData.city && locData.country) {
-        location = `${locData.city}, ${locData.country}`;
-      } else if (locData.country) {
-        location = locData.country;
+      const googleKey = process.env.GOOGLE_GEOCODING_KEY;
+      if (googleKey) {
+        const locRes = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?latlng=0,0&key=${googleKey}&result_type=locality`
+        );
+        // For IP-based geolocation with Google, use their Geolocation API
+        const geoRes = await fetch(`https://www.googleapis.com/geolocation/v1/geolocate?key=${googleKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ considerIp: true }),
+        });
+        const geoData = await geoRes.json();
+        if (geoData.location) {
+          const reverseRes = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${geoData.location.lat},${geoData.location.lng}&key=${googleKey}`
+          );
+          const reverseData = await reverseRes.json();
+          if (reverseData.results?.[0]) {
+            const components = reverseData.results[0].address_components;
+            const city = components.find(c => c.types.includes("locality"))?.long_name;
+            const country = components.find(c => c.types.includes("country"))?.long_name;
+            location = [city, country].filter(Boolean).join(", ") || reverseData.results[0].formatted_address;
+          }
+        }
+      } else {
+        // Fallback: free ip-api.com (no key needed)
+        const locRes = await fetch(`http://ip-api.com/json/${userIp}?fields=city,country`);
+        const locData = await locRes.json();
+        if (locData.city && locData.country) {
+          location = `${locData.city}, ${locData.country}`;
+        } else if (locData.country) {
+          location = locData.country;
+        }
       }
     } catch (e) {
       console.log("Geolocation fetch failed:", e.message);
@@ -152,7 +187,7 @@ async function login(req, res) {
       location,
       os: parser.getOS().name || "Unknown",
       osVersion: parser.getOS().version || "Unknown",
-      deviceName: parser.getDevice().model || parser.getOS().name || "Unknown",
+      deviceName,
     };
 
     await createUserSession(
