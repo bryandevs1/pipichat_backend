@@ -13,6 +13,9 @@ class ReelController {
       const { page = 1, limit = 20, category_id } = req.query;
       const offset = (page - 1) * limit;
 
+      // Use 0 as fallback — no real user has user_id = 0, so LEFT JOIN produces NULL
+      const effectiveUserId = userId || 0;
+
       let query = `
         SELECT p.*, pr.source, pr.thumbnail,
                u.user_name, u.user_firstname, u.user_picture, u.user_verified,
@@ -25,7 +28,7 @@ class ReelController {
         LEFT JOIN posts_reactions prr ON prr.post_id = p.post_id AND prr.user_id = ?
         WHERE p.is_hidden = '0' AND p.has_approved = '1'
       `;
-      const params = [userId || null];
+      const params = [effectiveUserId];
 
       if (category_id) {
         query += ` AND pv.category_id = ?`;
@@ -47,6 +50,7 @@ class ReelController {
   static async getReel(req, res) {
     try {
       const userId = ReelController.getCurrentUserId(req);
+      const effectiveUserId = userId || 0;
       const { postId } = req.params;
       const [reels] = await db.query(
         `SELECT p.*, pr.source, pr.thumbnail,
@@ -57,7 +61,7 @@ class ReelController {
          LEFT JOIN users u ON p.user_id = u.user_id AND u.user_type = 'user'
          LEFT JOIN posts_reactions prr ON prr.post_id = p.post_id AND prr.user_id = ?
          WHERE pr.post_id = ?`,
-        [userId || null, postId]
+        [effectiveUserId, postId]
       );
       if (reels.length === 0) return res.status(404).json({ success: false, message: "Reel not found" });
       res.json({ success: true, data: reels[0] });
