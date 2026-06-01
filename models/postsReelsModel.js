@@ -1,10 +1,10 @@
 const db = require('../config/db');
 
 class PostsReels {
-  static async create(postId, reelUrl, thumb = null, duration = null) {
+  static async create(postId, source, thumbnail = null) {
     const [res] = await db.query(
-      'INSERT INTO posts_reels (post_id, reel_url, thumb, duration, created_at) VALUES (?, ?, ?, ?, NOW())',
-      [postId, reelUrl, thumb, duration]
+      'INSERT INTO posts_reels (post_id, source, thumbnail) VALUES (?, ?, ?)',
+      [postId, source, thumbnail]
     );
     return res.insertId;
   }

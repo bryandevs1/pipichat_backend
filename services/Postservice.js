@@ -722,7 +722,7 @@ class PostService {
 
       if (needReels) {
         const [reels] = await connection.query(
-          `SELECT post_id, reel_id, reel_url, thumb, duration FROM posts_reels WHERE post_id IN (?)`,
+          `SELECT post_id, reel_id, source, thumbnail FROM posts_reels WHERE post_id IN (?)`,
           [postIds],
         );
         reels.forEach((r) => {
@@ -1650,8 +1650,8 @@ class PostService {
     }
 
     const [result] = await connection.query(
-      `INSERT INTO posts_reels (post_id, reel_url, thumb, duration) VALUES (?, ?, ?, ?)`,
-      [postId, reelUrl, thumbnailPath, reelData?.duration || null],
+      `INSERT INTO posts_reels (post_id, source, thumbnail) VALUES (?, ?, ?)`,
+      [postId, reelUrl, thumbnailPath],
     );
     return result.insertId;
   }

@@ -136,7 +136,7 @@ class PostModel {
     } else if (postType.includes("reel")) {
       const [reels] = await db.query(
         `
-        SELECT reel_id AS id, reel_url AS url, thumb AS thumbnail, duration, 'reel' AS media_type
+        SELECT reel_id AS id, source AS url, thumbnail, 'reel' AS media_type
         FROM posts_reels WHERE post_id = ?
       `,
         [actualPostId],
@@ -145,7 +145,6 @@ class PostModel {
         id: reel.id,
         url: reel.url,
         thumbnail: reel.thumbnail,
-        duration: reel.duration,
         media_type: "reel",
       }));
     } else if (postType.includes("video") || postType === "shared") {
@@ -1084,7 +1083,7 @@ EXISTS(
       if (needReels) {
         const [reels] = await connection.query(
           `
-          SELECT post_id, reel_id, reel_url, thumb, duration
+          SELECT post_id, reel_id, source, thumbnail
           FROM posts_reels
           WHERE post_id IN (?)
           `,
@@ -1389,9 +1388,8 @@ EXISTS(
       reel: reelRow
         ? {
             id: reelRow.reel_id,
-            url: reelRow.reel_url,
-            thumbnail: reelRow.thumb,
-            duration: reelRow.duration,
+            url: reelRow.source,
+            thumbnail: reelRow.thumbnail,
           }
         : null,
 

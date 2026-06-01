@@ -13,7 +13,7 @@ class ReelController {
       const offset = (page - 1) * limit;
 
       let query = `
-        SELECT p.*, pr.reel_url, pr.thumb, pr.duration,
+        SELECT p.*, pr.source, pr.thumbnail,
                u.user_name, u.user_firstname, u.user_picture, u.user_verified,
                pv.category_id
         FROM posts_reels pr
@@ -45,7 +45,7 @@ class ReelController {
     try {
       const { postId } = req.params;
       const [reels] = await db.query(
-        `SELECT p.*, pr.reel_url, pr.thumb, pr.duration,
+        `SELECT p.*, pr.source, pr.thumbnail,
                 u.user_name, u.user_firstname, u.user_picture, u.user_verified
          FROM posts_reels pr
          JOIN posts p ON pr.post_id = p.post_id
