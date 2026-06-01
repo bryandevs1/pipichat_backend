@@ -9,6 +9,7 @@ class ReelController {
   // GET /api/reels - Get reels with pagination
   static async getReels(req, res) {
     try {
+      const userId = ReelController.getCurrentUserId(req);
       const { page = 1, limit = 20, category_id } = req.query;
       const offset = (page - 1) * limit;
 
@@ -16,6 +17,13 @@ class ReelController {
         SELECT p.*, pr.source, pr.thumbnail,
                u.user_name, u.user_firstname, u.user_picture, u.user_verified,
                pv.category_id
+      `;
+      if (userId) {
+        query += `, (SELECT reaction FROM posts_reactions WHERE post_id = p.post_id AND user_id = ?) AS user_reaction`;
+      } else {
+        query += `, NULL AS user_reaction`;
+      }
+      query += `
         FROM posts_reels pr
         JOIN posts p ON pr.post_id = p.post_id
         LEFT JOIN users u ON p.user_id = u.user_id AND p.user_type = 'user'
@@ -23,6 +31,7 @@ class ReelController {
         WHERE p.is_hidden = '0' AND p.has_approved = '1'
       `;
       const params = [];
+      if (userId) params.push(userId);
 
       if (category_id) {
         query += ` AND pv.category_id = ?`;
@@ -43,15 +52,17 @@ class ReelController {
   // GET /api/reels/:postId - Get single reel
   static async getReel(req, res) {
     try {
+      const userId = ReelController.getCurrentUserId(req);
       const { postId } = req.params;
       const [reels] = await db.query(
         `SELECT p.*, pr.source, pr.thumbnail,
-                u.user_name, u.user_firstname, u.user_picture, u.user_verified
+                u.user_name, u.user_firstname, u.user_picture, u.user_verified,
+                (SELECT reaction FROM posts_reactions WHERE post_id = p.post_id AND user_id = ?) AS user_reaction
          FROM posts_reels pr
          JOIN posts p ON pr.post_id = p.post_id
          LEFT JOIN users u ON p.user_id = u.user_id AND p.user_type = 'user'
          WHERE pr.post_id = ?`,
-        [postId]
+        [userId || 0, postId]
       );
       if (reels.length === 0) return res.status(404).json({ success: false, message: "Reel not found" });
       res.json({ success: true, data: reels[0] });
