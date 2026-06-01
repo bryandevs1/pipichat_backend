@@ -335,6 +335,7 @@ async function seedPages(connection, schema, count, adminUserIds, countryIds, pa
       page_picture: randomAvatar(pageName),
       page_cover: randomUrl("page-cover", pageName),
       page_country: countryIds.length ? pick(countryIds) : 1,
+      page_language: 1,
       page_description: `Seeded page ${title}.`,
       page_action_text: "Follow",
       page_action_color: "blue",
