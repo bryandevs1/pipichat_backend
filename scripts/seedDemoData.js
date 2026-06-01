@@ -557,6 +557,15 @@ async function seedConversations(connection, schema, userIds, count, messagesPer
         ]),
         image: randomInt(0, 4) === 0 ? randomUrl("message-image", `${conversationId}-${messageIndex}`) : null,
         voice_note: randomInt(0, 8) === 0 ? randomUrl("voice-note", `${conversationId}-${messageIndex}`) : null,
+        video: "",
+        product_post_id: null,
+        reaction_like_count: 0,
+        reaction_love_count: 0,
+        reaction_haha_count: 0,
+        reaction_yay_count: 0,
+        reaction_wow_count: 0,
+        reaction_sad_count: 0,
+        reaction_angry_count: 0,
         time: minutesAgo(randomInt(1, 200)),
       });
     }
