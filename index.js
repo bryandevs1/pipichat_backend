@@ -158,18 +158,41 @@ app.use((err, req, res, next) => {
     err.type === "entity.too.large" || err.status === 413 || isMulterTooLarge;
 
   if (isPayloadTooLarge) {
-    console.error("❌ Payload too large", {
+    // Log detailed info to help identify source
+    const serverName = req.headers["server"] || "unknown";
+    const via = req.headers["via"] || "direct";
+    const cfRay = req.headers["cf-ray"] || "none"; // Cloudflare ray ID
+    console.error("❌ 413 PAYLOAD TOO LARGE — DETAILED LOG", {
+      timestamp: new Date().toISOString(),
       method: req.method,
       url: req.originalUrl,
       contentType: req.headers["content-type"],
       contentLength: req.headers["content-length"],
+      remoteAddress: req.socket?.remoteAddress,
       errorCode: err.code,
+      errorType: err.type,
       errorMessage: err.message,
+      stack: err.stack?.split("\n").slice(0, 3).join(" | "),
+      // Headers that reveal which server is blocking
+      server: serverName,
+      via: via,
+      "cf-ray": cfRay,
+      "x-forwarded-for": req.headers["x-forwarded-for"],
     });
+
+    // Differentiate between Nginx/Cloudflare/Express rejection
+    let source = "unknown";
+    if (err.type === "entity.too.large") source = "Express (body-parser limit)";
+    else if (err.code === "LIMIT_FILE_SIZE") source = "Multer (file size limit)";
+    else if (cfRay !== "none") source = "Cloudflare (check your Cloudflare upload limit)";
+    else source = "Likely Nginx (check client_max_body_size in your Nginx config)";
+
+    console.error(`🔍 413 SOURCE DETECTED: ${source}`);
 
     return res.status(413).json({
       success: false,
-      message: "Payload too large. Please reduce file size and try again.",
+      message: "File too large.",
+      source, // This tells you exactly where the limit is coming from
     });
   }
 

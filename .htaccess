@@ -1,1 +1,18 @@
+# Increase upload limits for Apache
+<IfModule mod_php.c>
+  php_value upload_max_filesize 500M
+  php_value post_max_size 500M
+  php_value max_execution_time 300
+  php_value max_input_time 300
+</IfModule>
 
+<IfModule mod_fcgid.c>
+  FcgidMaxRequestLen 524288000
+</IfModule>
+
+<IfModule mod_reqtimeout.c>
+  RequestReadTimeout body=50000000
+</IfModule>
+
+# Increase request size limit
+LimitRequestBody 524288000
