@@ -1446,8 +1446,9 @@ const postController = {
         },
       });
     } catch (error) {
-      console.error("Donate to funding error:", error);
-      res.status(500).json({
+      console.error("Donate to funding error:", error.message);
+      const isBalanceIssue = /insufficient|balance|wallet/i.test(error.message);
+      res.status(isBalanceIssue ? 400 : 500).json({
         success: false,
         message: error.message || "Failed to donate",
       });
