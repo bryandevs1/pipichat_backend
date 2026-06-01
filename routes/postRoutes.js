@@ -155,6 +155,7 @@ router.post(
 router.post("/:id/boost", authenticateToken, postController.boostPost);
 
 router.delete("/:id", authenticateToken, postController.deletePost);
+router.post("/:id/tip", authenticateToken, postController.sendTip);
 // ==================== SAVE / SHARE ====================
 router.post("/:id/save", authenticateToken, postController.savePost);
 router.post("/:id/share", authenticateToken, postController.sharePost);

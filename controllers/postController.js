@@ -1499,6 +1499,42 @@ const postController = {
     }
   },
 
+  // ==================== SEND TIP ====================
+  sendTip: async (req, res) => {
+    try {
+      const post_id = req.params.id;
+      const { amount, creator_id } = req.body;
+      const user_id = req.user?.id;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ success: false, message: "Invalid tip amount" });
+      }
+
+      // Check sender balance
+      const [[sender]] = await db.query("SELECT user_wallet_balance FROM users WHERE user_id = ?", [user_id]);
+      if (!sender || parseFloat(sender.user_wallet_balance) < parseFloat(amount)) {
+        return res.status(400).json({ success: false, message: "Insufficient wallet balance" });
+      }
+
+      // Deduct from sender
+      await db.query("UPDATE users SET user_wallet_balance = user_wallet_balance - ? WHERE user_id = ?", [amount, user_id]);
+
+      // Credit creator
+      await db.query("UPDATE users SET user_wallet_balance = user_wallet_balance + ? WHERE user_id = ?", [amount, creator_id || post_id]);
+
+      // Record transactions
+      await db.query(
+        "INSERT INTO wallet_transactions (user_id, amount, type, node_type, node_id, description, date) VALUES (?, ?, 'out', 'tip', ?, ?, NOW())",
+        [user_id, amount, post_id, `Tip for post #${post_id}`],
+      );
+
+      res.json({ success: true, message: `Tip of ₦${amount} sent successfully!` });
+    } catch (error) {
+      console.error("Send tip error:", error);
+      res.status(500).json({ success: false, message: error.message || "Failed to send tip" });
+    }
+  },
+
   // ==================== REACT TO POST ====================
   reactToPost: async (req, res) => {
     try {
