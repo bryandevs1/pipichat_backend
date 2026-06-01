@@ -39,6 +39,7 @@ class ReelController {
       params.push(parseInt(limit), parseInt(offset));
 
       const [reels] = await db.query(query, params);
+      console.log("getReels full payload:", JSON.stringify(reels, null, 2));
       res.json({ success: true, data: reels });
     } catch (err) {
       console.error("getReels error:", err);
