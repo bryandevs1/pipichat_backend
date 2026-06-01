@@ -9,7 +9,7 @@ class ReelController {
   // GET /api/reels - Get reels with pagination
   static async getReels(req, res) {
     try {
-      const userId = ReelController.getCurrentUserId(req);
+      const userId = await ReelController.getCurrentUserId(req);
       const { page = 1, limit = 20, category_id } = req.query;
       const offset = (page - 1) * limit;
 
@@ -49,7 +49,7 @@ class ReelController {
   // GET /api/reels/:postId - Get single reel
   static async getReel(req, res) {
     try {
-      const userId = ReelController.getCurrentUserId(req);
+      const userId = await ReelController.getCurrentUserId(req);
       const effectiveUserId = userId || 0;
       const { postId } = req.params;
       const [reels] = await db.query(
@@ -74,7 +74,7 @@ class ReelController {
   static async deleteReel(req, res) {
     try {
       const { postId } = req.params;
-      const userId = ReelController.getCurrentUserId(req);
+      const userId = await ReelController.getCurrentUserId(req);
       const [[post]] = await db.query("SELECT user_id FROM posts WHERE post_id = ?", [postId]);
       if (!post || post.user_id !== userId) {
         return res.status(403).json({ success: false, message: "Unauthorized" });
