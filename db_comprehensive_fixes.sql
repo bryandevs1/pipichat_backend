@@ -63,6 +63,8 @@ ALTER TABLE `conversations_messages`
   ADD COLUMN IF NOT EXISTS `reaction_wow_count` int(10) unsigned NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS `reaction_sad_count` int(10) unsigned NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS `reaction_angry_count` int(10) unsigned NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS `video` varchar(256) NOT NULL DEFAULT '';
+  ADD COLUMN IF NOT EXISTS `video` varchar(256) NOT NULL DEFAULT '',
+  MODIFY COLUMN `image` varchar(256) DEFAULT NULL,
+  MODIFY COLUMN `voice_note` varchar(256) DEFAULT NULL;
 
 COMMIT;
