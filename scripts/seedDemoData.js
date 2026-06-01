@@ -368,7 +368,7 @@ async function seedPages(connection, schema, count, adminUserIds, countryIds, pa
   return pageIds;
 }
 
-async function seedGroups(connection, schema, count, adminUserIds, groupCategoryIds) {
+async function seedGroups(connection, schema, count, adminUserIds, groupCategoryIds, countryIds) {
   const groupIds = [];
   for (let index = 0; index < count; index += 1) {
     const title = `Group ${index + 1} ${RUN_TAG}`;
@@ -1045,6 +1045,7 @@ async function main() {
       DEFAULT_COUNTS.groups,
       users,
       groupCategoryIds,
+      countryIds,
     );
     const events = await seedEvents(
       connection,
