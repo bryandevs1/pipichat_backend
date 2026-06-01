@@ -1319,11 +1319,11 @@ class PostService {
         break;
 
       case "reel":
-        if (files.reelData) {
+        if (files.videos && files.videos.length > 0) {
           result.reelId = await this.handleReel(
             connection,
             postId,
-            files.reelData,
+            { reel_file: files.videos[0] },
             files.thumbnail,
           );
         }
