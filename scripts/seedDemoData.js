@@ -16,74 +16,109 @@ const RESET = process.argv.includes("--reset") || process.env.SEED_RESET === "1"
 const RUN_TAG = Date.now().toString(36);
 const PASSWORD_HASH = bcrypt.hashSync("Password123!", 10);
 
+// ─── Names ────────────────────────────────────────────────────────────────────
+
 const FIRST_NAMES = [
-  "Amani",
-  "Zuri",
-  "Kofi",
-  "Nia",
-  "Omar",
-  "Tia",
-  "Imani",
-  "Biko",
-  "Lina",
-  "Musa",
-  "Asha",
-  "Juma",
-  "Ruth",
-  "Dayo",
-  "Zola",
-  "Sana",
+  // East Africa
+  "Amara", "Zawadi", "Kofi", "Niambi", "Obinna", "Adaeze", "Seun",
+  "Chiamaka", "Emeka", "Fatou", "Kwame", "Abena", "Tunde", "Yewande",
+  // West Africa
+  "Adeola", "Chisom", "Babatunde", "Ngozi", "Chukwuemeka", "Ifeoma",
+  // Southern Africa
+  "Nandi", "Sibusiso", "Thandiwe", "Lungelo", "Nokuthula", "Mthokozisi",
+  // North Africa
+  "Yasmine", "Karim", "Nour", "Tariq", "Leila", "Hamza",
+  // Pan-African
+  "Zara", "Kemi", "Dami", "Tobi", "Sade", "Femi", "Bisi", "Lola",
 ];
 
 const LAST_NAMES = [
-  "Mwamba",
-  "Adebayo",
-  "Otieno",
-  "Ndlovu",
-  "Diallo",
-  "Kamau",
-  "Mensah",
-  "Hassan",
-  "Kone",
-  "Moyo",
-  "Okafor",
-  "Sow",
-  "Khalil",
-  "Bello",
-  "Kariuki",
-  "Toure",
+  // Nigerian
+  "Okafor", "Adeyemi", "Nwosu", "Eze", "Adeleke", "Okonkwo", "Balogun", "Afolabi",
+  // Kenyan / East African
+  "Kamau", "Otieno", "Wanjiku", "Mwangi", "Kariuki", "Ochieng", "Mutua",
+  // Ghanaian
+  "Mensah", "Asante", "Boateng", "Owusu", "Acheampong",
+  // Southern African
+  "Dlamini", "Mokoena", "Ndlovu", "Khumalo", "Sithole",
+  // Francophone / Sahel
+  "Diallo", "Coulibaly", "Touré", "Traoré", "Koné",
+  // North African
+  "Hassan", "Khalil", "Mansour", "Farouq",
 ];
 
 const CITIES = [
-  "Nairobi",
-  "Lagos",
-  "Accra",
-  "Kampala",
-  "Dar es Salaam",
-  "Johannesburg",
-  "Cairo",
-  "Dakar",
-  "Abuja",
-  "Kigali",
+  "Lagos", "Nairobi", "Accra", "Johannesburg", "Cairo", "Dakar",
+  "Abuja", "Kigali", "Kampala", "Dar es Salaam", "Addis Ababa",
+  "Casablanca", "Lusaka", "Harare", "Douala", "Abidjan",
 ];
 
+// ─── Post content ─────────────────────────────────────────────────────────────
+
 const POST_TEXTS = [
-  "Working on something new today.",
-  "Community update coming in a few minutes.",
-  "Sharing a quick thought from the field.",
-  "Today felt like progress.",
-  "Fresh content, fresh energy.",
-  "Building in public one post at a time.",
-  "A little inspiration for the timeline.",
+  // Thought leadership / commentary
+  "Three years ago I couldn't get a single investor to return my emails. Today we closed our seed round. The lesson? Build anyway — the receipts come later.",
+  "Unpopular opinion: the reason most African startups struggle isn't funding or talent — it's product market fit we convince ourselves we've found too early. Take the harder road.",
+  "The best career advice I ever got: 'Stop networking with people at your level. Obsess over being useful to the people ten steps ahead of you.'",
+  "We keep talking about brain drain but not enough about brain circulation. Some of the sharpest operators I know spent five years abroad and came home with capital, contacts, and conviction. Let's reframe the narrative.",
+  "Accountability thread: I said I'd launch in Q1. It's Q2. Here's exactly what went wrong, what I'm fixing, and the new date I'm committing to publicly — because public commitments are the only kind I keep.",
+  "Not every lesson needs to come from a Ted talk. I learned more about resilience watching my grandmother run her fabric stall in Alaba market than from any podcast.",
+  "People ask what made us pivot. Honest answer: the data was trying to tell us something for six months and our egos were too loud to hear it.",
+
+  // Community / culture
+  "This neighbourhood raised me. Every time we host a clean-up or skill-share here, I feel that debt getting smaller. What's your community giving back story?",
+  "Afrobeats did not just conquer charts — it rewired how the world hears joy. That didn't happen by accident. It happened because a generation of producers in Lagos bet on themselves before anyone else did.",
+  "PSA for creatives: your local market is not a consolation prize. It's a foundation. Build deep roots here before you chase the global stage.",
+  "Hot take: mentorship in Africa is too transactional. The best mentors I've had just let me observe them doing real work. No deck, no curriculum — just proximity to excellence.",
+  "Every time I land back home after a trip abroad, the energy at the airport hits different. There is something about African ambition in motion that is hard to describe and impossible to replicate.",
+
+  // Personal / human
+  "Today I took a full day off. No Slack. No email. Just family, jollof, and a very long nap. I'm telling you this so that someone reading it gives themselves permission to do the same.",
+  "Lost a deal today that we'd been chasing for four months. Went for a run. Came back. Started writing the next pitch. The only way out is through.",
+  "My biggest professional regret is the years I spent waiting for someone to give me a title before I started leading. Permission culture is a tax on potential.",
+  "Five years of building taught me more about human psychology than any MBA ever could. People don't buy products — they buy the version of themselves they become when they use it.",
+  "Reminder: not everyone gets to see the 3am iterations, the rejected proposals, the months where revenue flatlined. They just see the announcement. Respect the silence behind other people's success.",
+
+  // Knowledge sharing
+  "Quick framework I use before every major decision — write down the worst realistic outcome. If you can live with it, move forward. If you can't, redesign until you can.",
+  "Thread on the three contracts every freelancer in this space needs before they start any engagement — DM me and I'll send the templates we use. No cost.",
+  "Something nobody tells you about scaling: your biggest bottleneck stops being capital at some point and starts being clarity. Clarity of vision, communication, and culture.",
+  "The most underrated business skill on this continent right now is storytelling for investors who didn't grow up here. The numbers are often strong. The narrative bridge is where deals die.",
+  "I've reviewed over 200 pitch decks this year. The single most common mistake: burying the 'why us' slide at the end. Lead with it. Investors fund teams before they fund ideas.",
+
+  // Media / culture
+  "Just finished re-reading Things Fall Apart. Some books don't age — they deepen. Achebe wasn't just writing about colonialism; he was writing about the violence of having your story told by someone else.",
+  "The photography coming out of East Africa right now is astonishing. A whole generation of visual artists documenting the continent on their own terms. Tag me in work I should be following.",
+  "Film recommendation: go find the independent productions coming out of Nollywood's new wave. Smaller budgets, sharper scripts, zero apology. Cinema is finally looking like us.",
 ];
 
 const LINK_TITLES = [
-  "A useful guide",
-  "Project update",
-  "New resource",
-  "Event details",
-  "Announcement",
+  "How We Grew to 100k Users Without Paid Ads",
+  "The State of Fintech in Sub-Saharan Africa — 2025 Report",
+  "A Founder's Honest Breakdown of Their Series A Journey",
+  "Why Lagos Is Becoming the Creative Capital of the Continent",
+  "Open Source Tools Every African Developer Should Know",
+  "Building in Public: Our First Year by the Numbers",
+  "The Agricultural Tech Revolution Nobody Is Talking About",
+  "Inside Nairobi's New Wave of Design Studios",
 ];
+
+// ─── Conversation messages ─────────────────────────────────────────────────────
+
+const CONVERSATION_MESSAGES = [
+  "Hey, did you catch the announcement? Thoughts?",
+  "Just sent you the doc — let me know if the numbers look right on your end.",
+  "This looks really solid. I think we can move forward.",
+  "Heads up: the timeline shifted slightly. I'll send a full update by end of day.",
+  "Good call on the pivot. I think the new direction is much sharper.",
+  "Are you free for a quick call Thursday afternoon?",
+  "I've been thinking about what you said last week. I think you're right.",
+  "Congratulations on the launch! The product looks clean.",
+  "Can you introduce me to your contact at that accelerator? No pressure at all.",
+  "The feedback from the beta users is better than we expected — sharing the summary now.",
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -108,10 +143,6 @@ function slugify(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-}
-
-function now() {
-  return new Date();
 }
 
 function daysAgo(days) {
@@ -139,9 +170,7 @@ function futureDays(days) {
 }
 
 function randomUrl(kind, seed) {
-  return `https://picsum.photos/seed/${encodeURIComponent(
-    `${kind}-${seed}`,
-  )}/1200/800`;
+  return `https://picsum.photos/seed/${encodeURIComponent(`${kind}-${seed}`)}/1200/800`;
 }
 
 function randomAvatar(seed) {
@@ -152,17 +181,15 @@ function randomPhone() {
   return `+2547${randomInt(10000000, 99999999)}`;
 }
 
+// ─── DB helpers ───────────────────────────────────────────────────────────────
+
 async function getColumns(connection, tableName) {
   const [rows] = await connection.query(
-    `
-      SELECT COLUMN_NAME
-      FROM INFORMATION_SCHEMA.COLUMNS
-      WHERE TABLE_SCHEMA = DATABASE()
-        AND TABLE_NAME = ?
-    `,
+    `SELECT COLUMN_NAME
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
     [tableName],
   );
-
   return new Set(rows.map((row) => row.COLUMN_NAME));
 }
 
@@ -206,10 +233,10 @@ async function truncateTables(connection, schema, tableNames) {
   await connection.query("SET FOREIGN_KEY_CHECKS = 1");
 }
 
+// ─── Seeders ──────────────────────────────────────────────────────────────────
+
 async function seedCategories(connection, schema, tableName, labels) {
-  if (!schema[tableName] || schema[tableName].size === 0) {
-    return [];
-  }
+  if (!schema[tableName] || schema[tableName].size === 0) return [];
 
   const ids = [];
   for (let index = 0; index < labels.length; index += 1) {
@@ -230,7 +257,7 @@ async function seedUsers(connection, schema, count, countryIds) {
   for (let index = 0; index < count; index += 1) {
     const firstName = pick(FIRST_NAMES);
     const lastName = pick(LAST_NAMES);
-    const handle = `${slugify(firstName)}${slugify(lastName)}${RUN_TAG}${index + 1}`;
+    const handle = `${slugify(firstName)}.${slugify(lastName)}.${RUN_TAG}${index + 1}`;
     const city = pick(CITIES);
     const countryId = countryIds.length ? pick(countryIds) : null;
     const userId = await insertRow(connection, schema, "users", {
@@ -276,15 +303,37 @@ async function seedUsers(connection, schema, count, countryIds) {
       user_country: countryId,
       user_birthdate: daysAgo(randomInt(7_000, 12_000)),
       user_relationship: pick(["single", "married", "complicated"]),
-      user_biography: `Seeded profile for ${firstName} ${lastName}.`,
+      user_biography: pick([
+        `Building the next chapter of African tech, one line of code at a time. Based in ${city}.`,
+        `Founder. Creative. Connector. Passionate about what Africa builds next.`,
+        `Product designer who believes good design is a form of respect. ${city} native.`,
+        `Operator, investor, occasional writer. Trying to make the ecosystem a little better than I found it.`,
+        `Storyteller by instinct, strategist by trade. Making work that matters from ${city}.`,
+        `Community builder, startup advisor, and lifelong student of African markets.`,
+        `Engineer turned entrepreneur. I build things and then rebuild them until they actually work.`,
+      ]),
       user_website: `https://example.test/${handle}`,
-      user_work_title: pick(["Creator", "Builder", "Founder", "Designer", "Developer"]),
-      user_work_place: pick(["Pipi Africa", "Open Studio", "Digital House", "Community Lab"]),
+      user_work_title: pick([
+        "Founder & CEO", "Product Designer", "Software Engineer", "Growth Lead",
+        "Content Creator", "Investment Analyst", "Community Manager", "Creative Director",
+        "Operations Lead", "Brand Strategist",
+      ]),
+      user_work_place: pick([
+        "Pipi Africa", "Andela", "Flutterwave", "Paystack", "Jumia", "mPharma",
+        "Kuda Bank", "Wave Mobile Money", "54gene", "Twiga Foods",
+      ]),
       user_work_url: `https://example.test/work/${handle}`,
       user_current_city: city,
       user_hometown: pick(CITIES),
-      user_edu_major: pick(["Business", "Computer Science", "Design", "Media", "Economics"]),
-      user_edu_school: pick(["Nairobi University", "Makerere University", "University of Ghana", "Cairo University"]),
+      user_edu_major: pick([
+        "Computer Science", "Business Administration", "Design & Communication",
+        "Economics", "Electrical Engineering", "Media Studies", "International Development",
+      ]),
+      user_edu_school: pick([
+        "University of Lagos", "University of Nairobi", "University of Ghana",
+        "Cairo University", "Makerere University", "University of Cape Town",
+        "Strathmore University", "KNUST", "Covenant University", "ALX Africa",
+      ]),
       user_social_facebook: `https://facebook.com/${handle}`,
       user_social_twitter: `https://x.com/${handle}`,
       user_social_instagram: `https://instagram.com/${handle}`,
@@ -324,9 +373,16 @@ async function seedUsers(connection, schema, count, countryIds) {
 
 async function seedPages(connection, schema, count, adminUserIds, countryIds, pageCategoryIds) {
   const pageIds = [];
+
+  const PAGE_NAMES = [
+    "The Build Africa Digest", "Founders Forum Lagos", "Design in Africa",
+    "The African Tech Pulse", "Creative Commons Nairobi", "Startup Almanac Africa",
+    "The Continent Daily", "Pan-African Ventures", "Makers of the Sahel", "Afrotech Insider",
+  ];
+
   for (let index = 0; index < count; index += 1) {
-    const title = `Page ${index + 1} ${RUN_TAG}`;
-    const pageName = `${slugify(title)}-${index + 1}`;
+    const title = PAGE_NAMES[index % PAGE_NAMES.length];
+    const pageName = `${slugify(title)}-${RUN_TAG}${index + 1}`;
     const pageId = await insertRow(connection, schema, "pages", {
       page_admin: pick(adminUserIds),
       page_category: pageCategoryIds.length ? pick(pageCategoryIds) : 1,
@@ -336,11 +392,11 @@ async function seedPages(connection, schema, count, adminUserIds, countryIds, pa
       page_cover: randomUrl("page-cover", pageName),
       page_country: countryIds.length ? pick(countryIds) : 1,
       page_language: 1,
-      page_description: `Seeded page ${title}.`,
+      page_description: `${title} — a community platform covering innovation, culture, and opportunity across the African continent.`,
       page_action_text: "Follow",
       page_action_color: "blue",
       page_action_url: `https://example.test/pages/${pageName}`,
-      page_company: `${title} Company`,
+      page_company: `${title} Media`,
       page_phone: randomPhone(),
       page_website: `https://example.test/pages/${pageName}`,
       page_location: pick(CITIES),
@@ -375,9 +431,16 @@ async function seedPages(connection, schema, count, adminUserIds, countryIds, pa
 
 async function seedGroups(connection, schema, count, adminUserIds, groupCategoryIds, countryIds) {
   const groupIds = [];
+
+  const GROUP_NAMES = [
+    "African Founders Network", "Women in Tech Africa", "Lagos Product Community",
+    "East Africa Dev Circle", "Nairobi Design Guild", "Sahel Agritech Collective",
+    "Pan-African Investors Forum", "Creative Industries Lagos", "Accra Startup Hub", "Build Africa Remotely",
+  ];
+
   for (let index = 0; index < count; index += 1) {
-    const title = `Group ${index + 1} ${RUN_TAG}`;
-    const groupName = `${slugify(title)}-${index + 1}`;
+    const title = GROUP_NAMES[index % GROUP_NAMES.length];
+    const groupName = `${slugify(title)}-${RUN_TAG}${index + 1}`;
     const groupId = await insertRow(connection, schema, "groups", {
       group_privacy: pick(["public", "closed", "secret"]),
       group_admin: pick(adminUserIds),
@@ -386,7 +449,7 @@ async function seedGroups(connection, schema, count, adminUserIds, groupCategory
       group_title: title,
       group_country: countryIds.length ? pick(countryIds) : 1,
       group_language: 1,
-      group_description: `Seeded group ${title}.`,
+      group_description: `${title} — a curated space for operators, builders, and thinkers shaping Africa's next decade.`,
       group_publish_enabled: "1",
       group_publish_approval_enabled: "0",
       group_picture: randomAvatar(groupName),
@@ -421,8 +484,15 @@ async function seedGroups(connection, schema, count, adminUserIds, groupCategory
 
 async function seedEvents(connection, schema, count, adminUserIds, pageIds, eventCategoryIds) {
   const eventIds = [];
+
+  const EVENT_NAMES = [
+    "AfriTech Summit 2026", "Lagos Startup Weekend", "Design Indaba Nairobi Edition",
+    "Pan-African Founders Retreat", "East Africa Product Week", "Accra Creator Fest",
+    "African Climate Innovation Forum", "Johannesburg VC Connect", "Cairo Tech Expo", "Dakar Creative Labs",
+  ];
+
   for (let index = 0; index < count; index += 1) {
-    const title = `Event ${index + 1} ${RUN_TAG}`;
+    const title = EVENT_NAMES[index % EVENT_NAMES.length];
     const eventId = await insertRow(connection, schema, "events", {
       event_privacy: pick(["public", "closed", "secret"]),
       event_admin: pick(adminUserIds),
@@ -434,13 +504,13 @@ async function seedEvents(connection, schema, count, adminUserIds, pageIds, even
       event_longitude: null,
       event_country: 1,
       event_language: 1,
-      event_is_online: "0",
+      event_is_online: randomInt(0, 3) === 0 ? "1" : "0",
       event_boosted: "0",
       event_boosted_by: null,
       event_is_sponsored: "0",
       event_sponsor_name: null,
       event_sponsor_url: null,
-      event_description: `Seeded event ${title}.`,
+      event_description: `${title} brings together Africa's most ambitious builders, investors, and creatives for two days of conversations, workshops, and connections that actually matter.`,
       event_start_date: futureDays(randomInt(1, 30)),
       event_end_date: futureDays(randomInt(31, 60)),
       event_publish_enabled: "1",
@@ -449,7 +519,7 @@ async function seedEvents(connection, schema, count, adminUserIds, pageIds, even
       event_cover_position: "0px 0px",
       chatbox_enabled: "1",
       event_tickets_link: `https://example.test/events/${slugify(title)}`,
-      event_prices: JSON.stringify([10, 25, 50]),
+      event_prices: JSON.stringify([0, 25, 75]),
       event_rate: randomInt(0, 5),
       event_date: daysAgo(randomInt(1, 365)),
     });
@@ -505,7 +575,11 @@ async function seedConnections(connection, schema, userIds) {
 }
 
 async function seedConversations(connection, schema, userIds, count, messagesPerConversation) {
-  if (!schema.conversations || schema.conversations.size === 0 || !schema.conversations_users || schema.conversations_users.size === 0 || !schema.conversations_messages || schema.conversations_messages.size === 0) {
+  if (
+    !schema.conversations || schema.conversations.size === 0 ||
+    !schema.conversations_users || schema.conversations_users.size === 0 ||
+    !schema.conversations_messages || schema.conversations_messages.size === 0
+  ) {
     return [];
   }
 
@@ -517,10 +591,7 @@ async function seedConversations(connection, schema, userIds, count, messagesPer
     if (pair.length < 2) continue;
     const [userOneId, userTwoId] = pair[0] < pair[1] ? pair : [pair[1], pair[0]];
     const pairKey = `${userOneId}:${userTwoId}`;
-    if (usedPairs.has(pairKey)) {
-      index -= 1;
-      continue;
-    }
+    if (usedPairs.has(pairKey)) { index -= 1; continue; }
     usedPairs.add(pairKey);
 
     const conversationId = await insertRow(connection, schema, "conversations", {
@@ -548,13 +619,7 @@ async function seedConversations(connection, schema, userIds, count, messagesPer
       lastMessageId = await insertRow(connection, schema, "conversations_messages", {
         conversation_id: conversationId,
         user_id: senderId,
-        message: pick([
-          "Hey, did you see this?",
-          "This looks good.",
-          "Let’s move forward.",
-          "I left a note for you.",
-          "Sounds like a plan.",
-        ]),
+        message: pick(CONVERSATION_MESSAGES),
         image: randomInt(0, 4) === 0 ? randomUrl("message-image", `${conversationId}-${messageIndex}`) : "",
         voice_note: randomInt(0, 8) === 0 ? randomUrl("voice-note", `${conversationId}-${messageIndex}`) : "",
         video: "",
@@ -593,17 +658,8 @@ async function seedPosts(
 ) {
   const postIds = [];
   const postTypes = [
-    "normal",
-    "photo",
-    "video",
-    "article",
-    "link",
-    "product",
-    "job",
-    "poll",
-    "live",
-    "funding",
-    "offer",
+    "normal", "photo", "video", "article", "link",
+    "product", "job", "poll", "live", "funding", "offer",
   ];
 
   for (let index = 0; index < count; index += 1) {
@@ -615,16 +671,17 @@ async function seedPosts(
     const isEventPost = !isGroupPost && eventIds.length > 0 && randomInt(0, 5) === 0;
     const groupId = isGroupPost ? pick(groupIds) : null;
     const eventId = isEventPost ? pick(eventIds) : null;
-    const caption = `${pick(POST_TEXTS)} ${index + 1} ${RUN_TAG}`;
+    const caption = pick(POST_TEXTS);
+
     const postId = await insertRow(connection, schema, "posts", {
       user_id: authorId,
       user_type: userType,
       in_group: isGroupPost ? "1" : "0",
       group_id: groupId,
-      group_approved: isGroupPost ? "1" : "1",
+      group_approved: "1",
       in_event: isEventPost ? "1" : "0",
       event_id: eventId,
-      event_approved: isEventPost ? "1" : "1",
+      event_approved: "1",
       in_wall: "0",
       wall_id: null,
       post_type: postType,
@@ -635,7 +692,7 @@ async function seedPosts(
       privacy: pick(["public", "friends"]),
       text: caption,
       feeling_action: randomInt(0, 1) ? pick(["feeling", "thinking", "watching", "listening"]) : null,
-      feeling_value: randomInt(0, 1) ? pick(["great", "focused", "ready", "grateful"]) : null,
+      feeling_value: randomInt(0, 1) ? pick(["motivated", "focused", "grateful", "inspired", "hopeful"]) : null,
       boosted: randomInt(0, 5) === 0 ? "1" : "0",
       boosted_by: null,
       comments_disabled: "0",
@@ -658,7 +715,7 @@ async function seedPosts(
       for_subscriptions: randomInt(0, 6) === 0 ? "1" : "0",
       is_paid: randomInt(0, 8) === 0 ? "1" : "0",
       post_price: randomInt(0, 25),
-      paid_text: randomInt(0, 8) === 0 ? "Paid content preview" : null,
+      paid_text: randomInt(0, 8) === 0 ? "Subscribe to read the full breakdown." : null,
       is_collaborative: "0",
       collaborative_percent: 0,
       is_schedule: "0",
@@ -693,16 +750,10 @@ async function seedPosts(
     if (schema.posts_videos && schema.posts_videos.size > 0 && postType === "video") {
       await insertRow(connection, schema, "posts_videos", {
         post_id: postId,
-        category_id: categoryIdsByType.posts_videos.length
-          ? pick(categoryIdsByType.posts_videos)
-          : 1,
+        category_id: categoryIdsByType.posts_videos.length ? pick(categoryIdsByType.posts_videos) : 1,
         source: randomUrl("post-video", postId),
-        source_240p: null,
-        source_360p: null,
-        source_480p: null,
-        source_720p: null,
-        source_1080p: null,
-        source_1440p: null,
+        source_240p: null, source_360p: null, source_480p: null,
+        source_720p: null, source_1080p: null, source_1440p: null,
         source_2160p: null,
         thumbnail: randomUrl("video-thumb", postId),
         views: randomInt(5, 250),
@@ -710,13 +761,20 @@ async function seedPosts(
     }
 
     if (schema.posts_articles && schema.posts_articles.size > 0 && postType === "article") {
+      const ARTICLE_TITLES = [
+        "What the Next Five Years of African Tech Actually Look Like",
+        "Why Founders on This Continent Are Playing a Different Game",
+        "The Infrastructure Gap Nobody Wants to Fund — and Why That's Changing",
+        "Building Trust in Markets Where Trust Has Been Broken",
+        "A Candid Look at What It Takes to Scale Past 10,000 Users in Africa",
+      ];
       await insertRow(connection, schema, "posts_articles", {
         post_id: postId,
         cover: randomUrl("article-cover", postId),
-        title: `Article ${postId}`,
-        text: `Detailed article content for post ${postId}.`,
+        title: pick(ARTICLE_TITLES),
+        text: caption,
         category_id: categoryIdsByType.blogs.length ? pick(categoryIdsByType.blogs) : 1,
-        tags: "seed,article,demo",
+        tags: "africa,tech,founders,growth",
         views: randomInt(10, 200),
       });
     }
@@ -727,15 +785,20 @@ async function seedPosts(
         source_url: `https://example.test/articles/${postId}`,
         source_host: "example.test",
         source_title: pick(LINK_TITLES),
-        source_text: `Link preview for post ${postId}.`,
+        source_text: caption.slice(0, 120),
         source_thumbnail: randomUrl("link-thumb", postId),
       });
     }
 
     if (schema.posts_products && schema.posts_products.size > 0 && postType === "product") {
+      const PRODUCTS = [
+        "Handwoven Ankara Tote Bag", "Shea Butter Skincare Kit", "Solar Desk Lamp",
+        "Adire Print Journal", "African Chess Set (Mahogany)", "Organic Moringa Powder",
+        "Beaded Phone Holder", "Kente Print Laptop Sleeve",
+      ];
       await insertRow(connection, schema, "posts_products", {
         post_id: postId,
-        name: `Product ${postId}`,
+        name: pick(PRODUCTS),
         price: randomInt(10, 100),
         quantity: randomInt(1, 20),
         category_id: categoryIdsByType.market.length ? pick(categoryIdsByType.market) : 1,
@@ -749,23 +812,33 @@ async function seedPosts(
     }
 
     if (schema.posts_jobs && schema.posts_jobs.size > 0 && postType === "job") {
+      const JOBS = [
+        { title: "Senior Product Designer", type: "full-time" },
+        { title: "Backend Engineer (Node.js)", type: "full-time" },
+        { title: "Growth & Partnerships Lead", type: "full-time" },
+        { title: "Data Analyst — Fintech", type: "contract" },
+        { title: "Community Manager", type: "part-time" },
+        { title: "Content Strategist", type: "contract" },
+        { title: "DevOps Engineer", type: "full-time" },
+      ];
+      const job = pick(JOBS);
       const jobId = await insertRow(connection, schema, "posts_jobs", {
         post_id: postId,
         category_id: categoryIdsByType.jobs.length ? pick(categoryIdsByType.jobs) : 1,
-        title: `Job ${postId}`,
+        title: job.title,
         location: pick(CITIES),
-        salary_minimum: randomInt(500, 2000),
-        salary_maximum: randomInt(2000, 6000),
-        pay_salary_per: pick(["hour", "week", "month"]),
-        type: pick(["full-time", "part-time", "contract"]),
+        salary_minimum: randomInt(800, 2500),
+        salary_maximum: randomInt(2500, 8000),
+        pay_salary_per: pick(["month", "month", "week"]),
+        type: job.type,
         question_1_type: "text",
-        question_1_title: "Why are you a fit?",
+        question_1_title: "What draws you to this role specifically?",
         question_1_choices: null,
         question_2_type: "text",
-        question_2_title: "Share experience.",
+        question_2_title: "Describe a relevant project or challenge you've solved.",
         question_2_choices: null,
         question_3_type: "text",
-        question_3_title: "When can you start?",
+        question_3_title: "When are you available to start?",
         question_3_choices: null,
         cover_image: randomUrl("job-cover", postId),
         available: "1",
@@ -781,15 +854,15 @@ async function seedPosts(
             location: pick(CITIES),
             phone: randomPhone(),
             email: `applicant${applicantId}@example.test`,
-            work_place: pick(["Company A", "Company B", "Studio C"]),
-            work_position: pick(["Manager", "Designer", "Developer"]),
+            work_place: pick(["Andela", "Flutterwave", "Jumia", "mPharma", "Wave"]),
+            work_position: pick(["Product Manager", "Engineer", "Designer", "Analyst"]),
             work_description: "Seeded application.",
-            work_from: "2020",
-            work_to: "2024",
+            work_from: "2021",
+            work_to: "2025",
             work_now: "0",
-            question_1_answer: "Yes",
-            question_2_answer: "A lot",
-            question_3_answer: "Soon",
+            question_1_answer: "The mission resonates with me and the scope is exactly where I want to grow.",
+            question_2_answer: "Led a full redesign of our onboarding flow that cut drop-off by 30%.",
+            question_3_answer: "Two weeks from offer.",
             cv: `https://example.test/cv/${applicantId}.pdf`,
             applied_time: minutesAgo(randomInt(5, 500)),
           });
@@ -798,23 +871,28 @@ async function seedPosts(
     }
 
     if (schema.posts_polls && schema.posts_polls.size > 0 && postType === "poll") {
+      const POLLS = [
+        { q: "What's the biggest blocker for African startups right now?", opts: ["Access to capital", "Talent retention", "Infrastructure gaps", "Regulatory friction"] },
+        { q: "Which city has the most exciting startup scene right now?", opts: ["Lagos", "Nairobi", "Accra", "Cairo"] },
+        { q: "How do you prefer to learn new skills?", opts: ["Online courses", "Mentorship", "Building projects", "Books & articles"] },
+        { q: "What matters most when choosing a co-founder?", opts: ["Complementary skills", "Shared values", "Prior track record", "Energy and work ethic"] },
+      ];
+      const pollData = pick(POLLS);
       const pollId = await insertRow(connection, schema, "posts_polls", {
         post_id: postId,
         votes: randomInt(5, 250),
       });
 
       if (schema.posts_polls_options && schema.posts_polls_options.size > 0) {
-        const optionTexts = ["Option A", "Option B", "Option C"];
         const optionIds = [];
-        for (const optionText of optionTexts) {
+        for (const optionText of pollData.opts) {
           const optionId = await insertRow(connection, schema, "posts_polls_options", {
             poll_id: pollId,
-            text: `${optionText} ${index + 1}`,
+            text: optionText,
           });
           optionIds.push(optionId);
         }
 
-        // Pick voters once per poll (not per option) to avoid duplicates
         if (schema.posts_polls_options_users && schema.posts_polls_options_users.size > 0) {
           const voters = sample(userIds, randomInt(1, Math.min(5, userIds.length)));
           for (const voterId of voters) {
@@ -829,7 +907,7 @@ async function seedPosts(
     }
 
     if (schema.posts_live && schema.posts_live.size > 0 && postType === "live") {
-      const liveId = await insertRow(connection, schema, "posts_live", {
+      await insertRow(connection, schema, "posts_live", {
         post_id: postId,
         video_thumbnail: randomUrl("live-thumb", postId),
         agora_uid: randomInt(1000, 9999),
@@ -852,12 +930,19 @@ async function seedPosts(
     }
 
     if (schema.posts_funding && schema.posts_funding.size > 0 && postType === "funding") {
-      const fundingId = await insertRow(connection, schema, "posts_funding", {
+      const FUNDING_TITLES = [
+        "Help Us Build a Rural Solar Grid in Northern Ghana",
+        "Coding Bootcamp Scholarships for 50 Young Women in Lagos",
+        "Community Library & Makerspace — Kigali",
+        "Clean Water Initiative for Three Villages in the Sahel",
+        "African Oral History Archive — Digitisation Project",
+      ];
+      await insertRow(connection, schema, "posts_funding", {
         post_id: postId,
-        title: `Funding ${postId}`,
-        amount: randomInt(500, 5000),
-        raised_amount: randomInt(50, 2500),
-        total_donations: randomInt(1, 25),
+        title: pick(FUNDING_TITLES),
+        amount: randomInt(2000, 10000),
+        raised_amount: randomInt(200, 5000),
+        total_donations: randomInt(5, 80),
         cover_image: randomUrl("funding-cover", postId),
       });
 
@@ -866,7 +951,7 @@ async function seedPosts(
           await insertRow(connection, schema, "posts_funding_donors", {
             user_id: donorId,
             post_id: postId,
-            donation_amount: randomInt(5, 250),
+            donation_amount: randomInt(10, 500),
             donation_time: minutesAgo(randomInt(1, 2000)),
           });
         }
@@ -874,18 +959,22 @@ async function seedPosts(
     }
 
     if (schema.posts_offers && schema.posts_offers.size > 0 && postType === "offer") {
+      const OFFERS = [
+        "30% off all skincare this weekend", "Buy 2 get 1 free — handcrafted jewellery",
+        "Flash sale: digital design assets", "Early-bird rate for the summit — ends Friday",
+      ];
       await insertRow(connection, schema, "posts_offers", {
         post_id: postId,
         category_id: categoryIdsByType.offers.length ? pick(categoryIdsByType.offers) : 1,
-        title: `Offer ${postId}`,
+        title: pick(OFFERS),
         discount_type: pick(["percentage", "amount"]),
-        discount_percent: randomInt(5, 50),
+        discount_percent: randomInt(10, 50),
         discount_amount: randomInt(5, 100),
         buy_x: randomInt(1, 3),
         get_y: randomInt(1, 3),
         spend_x: randomInt(10, 50),
         amount_y: randomInt(5, 20),
-        end_date: futureDays(randomInt(1, 30)),
+        end_date: futureDays(randomInt(1, 14)),
         price: randomInt(10, 80),
         thumbnail: randomUrl("offer-thumb", postId),
       });
@@ -917,50 +1006,45 @@ async function seedPosts(
   return postIds;
 }
 
+
+async function seedStories(connection, schema, userIds) {
+  if (!schema.stories || schema.stories.size === 0 || !schema.stories_media || schema.stories_media.size === 0) return;
+  for (let index = 0; index < 5; index += 1) {
+    const userId = pick(userIds);
+    const storyId = await insertRow(connection, schema, "stories", {
+      user_id: userId,
+      is_ads: "0",
+      time: hoursAgo(randomInt(1, 12)),
+      media_count: 1,
+    });
+    await insertRow(connection, schema, "stories_media", {
+      story_id: storyId,
+      source: randomUrl("story", `story-${index}`),
+      storage_type: "google-cloud",
+      storage_data: JSON.stringify({}),
+      is_photo: randomInt(0, 1) ? "1" : "0",
+      text: pick(["Good morning! ☀️", "Having a great day!", "Check this out 🔥", "New vibes 🎵", "Hello world! 🌍"]),
+      time: hoursAgo(randomInt(1, 12)),
+      thumbnail_path: null,
+    });
+  }
+}
+// ─── Entry point ──────────────────────────────────────────────────────────────
+
 async function main() {
   const connection = await pool.getConnection();
 
   const baseTables = [
-    "users",
-    "pages",
-    "groups",
-    "events",
-    "followings",
-    "friends",
-    "pages_admins",
-    "pages_likes",
-    "groups_admins",
-    "groups_members",
-    "events_members",
-    "conversations",
-    "conversations_users",
-    "conversations_messages",
-    "posts",
-    "posts_photos",
-    "posts_videos",
-    "posts_articles",
-    "posts_links",
-    "posts_products",
-    "posts_jobs",
-    "posts_jobs_applications",
-    "posts_polls",
-    "posts_polls_options",
-    "posts_polls_options_users",
-    "posts_live",
-    "posts_live_users",
-    "posts_funding",
-    "posts_funding_donors",
-    "posts_offers",
-    "posts_reactions",
-    "posts_saved",
-    "blogs_categories",
-    "pages_categories",
-    "groups_categories",
-    "events_categories",
-    "jobs_categories",
-    "market_categories",
-    "offers_categories",
-    "posts_videos_categories",
+    "users", "pages", "groups", "events", "followings", "friends",
+    "pages_admins", "pages_likes", "groups_admins", "groups_members", "events_members",
+    "conversations", "conversations_users", "conversations_messages",
+    "posts", "posts_photos", "posts_videos", "posts_articles", "posts_links",
+    "posts_products", "posts_jobs", "posts_jobs_applications",
+    "posts_polls", "posts_polls_options", "posts_polls_options_users",
+    "posts_live", "posts_live_users", "posts_funding", "posts_funding_donors",
+    "posts_offers", "posts_reactions", "posts_saved",
+    "blogs_categories", "pages_categories", "groups_categories", "events_categories",
+    "jobs_categories", "market_categories", "offers_categories", "posts_videos_categories",
     "system_countries",
   ];
 
@@ -971,46 +1055,16 @@ async function main() {
 
     if (RESET) {
       await truncateTables(connection, schema, [
-        "posts_saved",
-        "posts_reactions",
-        "posts_funding_donors",
-        "posts_funding",
-        "posts_live_users",
-        "posts_live",
-        "posts_polls_options_users",
-        "posts_polls_options",
-        "posts_polls",
-        "posts_jobs_applications",
-        "posts_jobs",
-        "posts_products",
-        "posts_links",
-        "posts_articles",
-        "posts_videos",
-        "posts_photos",
-        "posts",
-        "conversations_messages",
-        "conversations_users",
-        "conversations",
-        "events_members",
-        "events",
-        "groups_members",
-        "groups_admins",
-        "groups",
-        "pages_likes",
-        "pages_admins",
-        "pages",
-        "followings",
-        "friends",
-        "users",
-        "blogs_categories",
-        "pages_categories",
-        "groups_categories",
-        "events_categories",
-        "jobs_categories",
-        "market_categories",
-        "offers_categories",
-        "posts_videos_categories",
-        "system_countries",
+        "posts_saved", "posts_reactions", "posts_funding_donors", "posts_funding",
+        "posts_live_users", "posts_live", "posts_polls_options_users", "posts_polls_options",
+        "posts_polls", "posts_jobs_applications", "posts_jobs", "posts_products", "posts_links",
+        "posts_articles", "posts_videos", "posts_photos", "posts",
+        "conversations_messages", "conversations_users", "conversations",
+        "events_members", "events", "groups_members", "groups_admins", "groups",
+        "pages_likes", "pages_admins", "pages", "followings", "friends", "users",
+        "blogs_categories", "pages_categories", "groups_categories", "events_categories",
+        "jobs_categories", "market_categories", "offers_categories",
+        "posts_videos_categories", "system_countries",
       ]);
     }
 
@@ -1019,94 +1073,28 @@ async function main() {
       const [countries] = await connection.query(
         "SELECT country_id FROM system_countries ORDER BY country_id ASC LIMIT 10",
       );
-      for (const row of countries) {
-        countryIds.push(row.country_id);
-      }
+      for (const row of countries) countryIds.push(row.country_id);
     }
 
-    const blogsCategoryIds = await seedCategories(connection, schema, "blogs_categories", [
-      "News",
-      "Opinion",
-      "Tutorial",
-    ]);
-    const pageCategoryIds = await seedCategories(connection, schema, "pages_categories", [
-      "Creator",
-      "Business",
-      "Community",
-    ]);
-    const groupCategoryIds = await seedCategories(connection, schema, "groups_categories", [
-      "Community",
-      "Business",
-      "Learning",
-    ]);
-    const eventCategoryIds = await seedCategories(connection, schema, "events_categories", [
-      "Workshop",
-      "Meetup",
-      "Launch",
-    ]);
-    const jobCategoryIds = await seedCategories(connection, schema, "jobs_categories", [
-      "Full-time",
-      "Part-time",
-      "Contract",
-    ]);
-    const marketCategoryIds = await seedCategories(connection, schema, "market_categories", [
-      "Electronics",
-      "Fashion",
-      "Services",
-    ]);
-    const offersCategoryIds = await seedCategories(connection, schema, "offers_categories", [
-      "Discount",
-      "Bundle",
-      "Clearance",
-    ]);
-    const videoCategoryIds = await seedCategories(connection, schema, "posts_videos_categories", [
-      "Short-form",
-      "Documentary",
-      "Tutorial",
-    ]);
+    const blogsCategoryIds = await seedCategories(connection, schema, "blogs_categories", ["News", "Opinion", "Deep Dive"]);
+    const pageCategoryIds = await seedCategories(connection, schema, "pages_categories", ["Creator", "Business", "Community"]);
+    const groupCategoryIds = await seedCategories(connection, schema, "groups_categories", ["Community", "Industry", "Learning"]);
+    const eventCategoryIds = await seedCategories(connection, schema, "events_categories", ["Conference", "Meetup", "Workshop"]);
+    const jobCategoryIds = await seedCategories(connection, schema, "jobs_categories", ["Full-time", "Part-time", "Contract"]);
+    const marketCategoryIds = await seedCategories(connection, schema, "market_categories", ["Handcraft", "Digital", "Lifestyle"]);
+    const offersCategoryIds = await seedCategories(connection, schema, "offers_categories", ["Flash Sale", "Bundle", "Seasonal"]);
+    const videoCategoryIds = await seedCategories(connection, schema, "posts_videos_categories", ["Short-form", "Documentary", "Tutorial"]);
 
     const users = await seedUsers(connection, schema, DEFAULT_COUNTS.users, countryIds);
-    const pages = await seedPages(
-      connection,
-      schema,
-      DEFAULT_COUNTS.pages,
-      users,
-      countryIds,
-      pageCategoryIds,
-    );
-    const groups = await seedGroups(
-      connection,
-      schema,
-      DEFAULT_COUNTS.groups,
-      users,
-      groupCategoryIds,
-      countryIds,
-    );
-    const events = await seedEvents(
-      connection,
-      schema,
-      DEFAULT_COUNTS.events,
-      users,
-      pages,
-      eventCategoryIds,
-    );
-
+    const pages = await seedPages(connection, schema, DEFAULT_COUNTS.pages, users, countryIds, pageCategoryIds);
+    const groups = await seedGroups(connection, schema, DEFAULT_COUNTS.groups, users, groupCategoryIds, countryIds);
+    const events = await seedEvents(connection, schema, DEFAULT_COUNTS.events, users, pages, eventCategoryIds);
+    await seedStories(connection, schema, users);
     await seedConnections(connection, schema, users);
-    await seedConversations(
-      connection,
-      schema,
-      users,
-      DEFAULT_COUNTS.conversations,
-      DEFAULT_COUNTS.messagesPerConversation,
-    );
+    await seedConversations(connection, schema, users, DEFAULT_COUNTS.conversations, DEFAULT_COUNTS.messagesPerConversation);
 
     const postIds = await seedPosts(
-      connection,
-      schema,
-      users,
-      pages,
-      groups,
-      events,
+      connection, schema, users, pages, groups, events,
       {
         blogs: blogsCategoryIds,
         jobs: jobCategoryIds,
@@ -1119,7 +1107,7 @@ async function main() {
 
     await connection.commit();
 
-    console.log("Demo data seeded successfully.");
+    console.log("✓ Demo data seeded successfully.");
     console.log({
       users: users.length,
       pages: pages.length,
