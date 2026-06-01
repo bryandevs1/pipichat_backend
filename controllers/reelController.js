@@ -14,7 +14,7 @@ class ReelController {
       const offset = (page - 1) * limit;
 
       // Always pass userId (or null) as first param for the user_reaction subquery
-      const query = `
+      let query = `
         SELECT p.*, pr.source, pr.thumbnail,
                u.user_name, u.user_firstname, u.user_picture, u.user_verified,
                pv.category_id,
