@@ -2729,16 +2729,62 @@ class PostService {
     userId,
     product,
   ) {
+    // Check if already purchased
+    const [existing] = await connection.query(
+      `SELECT 1 FROM posts_paid WHERE post_id = ? AND user_id = ?`,
+      [postId, userId],
+    );
+    if (existing.length > 0) {
+      throw new Error("You have already purchased this item. Contact the seller for additional copies.");
+    }
+
+    // Check buyer wallet balance
+    const [[buyer]] = await connection.query(
+      `SELECT user_wallet_balance FROM users WHERE user_id = ?`,
+      [userId],
+    );
+    const price = parseFloat(product.price) || 0;
+    const balance = parseFloat(buyer?.user_wallet_balance) || 0;
+
+    if (balance < price) {
+      throw new Error(`Insufficient wallet balance. Required: ${price}, Available: ${balance}`);
+    }
+
+    // Deduct from buyer
+    await connection.query(
+      `UPDATE users SET user_wallet_balance = user_wallet_balance - ? WHERE user_id = ?`,
+      [price, userId],
+    );
+
+    // Credit the seller
+    await connection.query(
+      `UPDATE users SET user_wallet_balance = user_wallet_balance + ? WHERE user_id = ?`,
+      [price, product.seller_id],
+    );
+
+    // Record transactions
+    await connection.query(
+      `INSERT INTO wallet_transactions (user_id, amount, type, node_type, node_id, description, date)
+       VALUES (?, ?, 'out', 'product', ?, ?, NOW())`,
+      [userId, price, postId, `Purchased product #${postId}`],
+    );
+    await connection.query(
+      `INSERT INTO wallet_transactions (user_id, amount, type, node_type, node_id, description, date)
+       VALUES (?, ?, 'in', 'product_sale', ?, ?, NOW())`,
+      [product.seller_id, price, postId, `Sale of product #${postId}`],
+    );
+
+    // Mark as paid
+    await connection.query(
+      `INSERT INTO posts_paid (post_id, user_id, time) VALUES (?, ?, NOW())`,
+      [postId, userId],
+    );
+
     const downloadUrl =
       product.product_download_url ||
       (product.product_file_source
         ? await this.getSignedUrl(product.product_file_source)
         : null);
-
-    await connection.query(
-      `INSERT INTO posts_paid (post_id, user_id, time) VALUES (?, ?, NOW())`,
-      [postId, userId],
-    );
 
     await connection.commit();
 
