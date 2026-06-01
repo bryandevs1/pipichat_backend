@@ -13,16 +13,16 @@ class ReelController {
       const { page = 1, limit = 20, category_id } = req.query;
       const offset = (page - 1) * limit;
 
-      // Always pass userId (or null) as first param for the user_reaction subquery
       let query = `
         SELECT p.*, pr.source, pr.thumbnail,
                u.user_name, u.user_firstname, u.user_picture, u.user_verified,
                pv.category_id,
-               (SELECT reaction FROM posts_reactions WHERE post_id = p.post_id AND user_id = ? LIMIT 1) AS user_reaction
+               prr.reaction AS user_reaction
         FROM posts_reels pr
         JOIN posts p ON pr.post_id = p.post_id
         LEFT JOIN users u ON p.user_id = u.user_id AND p.user_type = 'user'
         LEFT JOIN posts_videos pv ON pv.post_id = p.post_id
+        LEFT JOIN posts_reactions prr ON prr.post_id = p.post_id AND prr.user_id = ?
         WHERE p.is_hidden = '0' AND p.has_approved = '1'
       `;
       const params = [userId || null];
@@ -51,10 +51,11 @@ class ReelController {
       const [reels] = await db.query(
         `SELECT p.*, pr.source, pr.thumbnail,
                 u.user_name, u.user_firstname, u.user_picture, u.user_verified,
-                (SELECT reaction FROM posts_reactions WHERE post_id = p.post_id AND user_id = ? LIMIT 1) AS user_reaction
+                prr.reaction AS user_reaction
          FROM posts_reels pr
          JOIN posts p ON pr.post_id = p.post_id
          LEFT JOIN users u ON p.user_id = u.user_id AND u.user_type = 'user'
+         LEFT JOIN posts_reactions prr ON prr.post_id = p.post_id AND prr.user_id = ?
          WHERE pr.post_id = ?`,
         [userId || null, postId]
       );
