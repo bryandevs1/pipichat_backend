@@ -805,21 +805,24 @@ async function seedPosts(
 
       if (schema.posts_polls_options && schema.posts_polls_options.size > 0) {
         const optionTexts = ["Option A", "Option B", "Option C"];
+        const optionIds = [];
         for (const optionText of optionTexts) {
           const optionId = await insertRow(connection, schema, "posts_polls_options", {
             poll_id: pollId,
             text: `${optionText} ${index + 1}`,
           });
+          optionIds.push(optionId);
+        }
 
-          if (schema.posts_polls_options_users && schema.posts_polls_options_users.size > 0) {
-            const voters = sample(userIds, randomInt(1, 5));
-            for (const voterId of voters) {
-              await insertRow(connection, schema, "posts_polls_options_users", {
-                user_id: voterId,
-                poll_id: pollId,
-                option_id: optionId,
-              });
-            }
+        // Pick voters once per poll (not per option) to avoid duplicates
+        if (schema.posts_polls_options_users && schema.posts_polls_options_users.size > 0) {
+          const voters = sample(userIds, randomInt(1, Math.min(5, userIds.length)));
+          for (const voterId of voters) {
+            await insertRow(connection, schema, "posts_polls_options_users", {
+              user_id: voterId,
+              poll_id: pollId,
+              option_id: pick(optionIds),
+            });
           }
         }
       }

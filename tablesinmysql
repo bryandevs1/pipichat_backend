@@ -1,4 +1,6 @@
 this is my new db
+
+table_name	column_name	column_type	is_nullable	column_key	column_default
 ads_campaigns	campaign_id	int(10) unsigned	NO	PRI	
 ads_campaigns	campaign_user_id	int(10) unsigned	NO	MUL	
 ads_campaigns	campaign_title	varchar(256)	NO	
@@ -227,12 +229,12 @@ conversations_messages	conversation_id	int(10) unsigned	NO	MUL
 conversations_messages	user_id	int(10) unsigned	NO	MUL	
 conversations_messages	message	longtext	NO	
 
-conversations_messages	image	varchar(256)	NO	
-
+conversations_messages	image	varchar(256)	YES	
+NULL
 conversations_messages	video	varchar(256)	NO	
 
-conversations_messages	voice_note	varchar(256)	NO	
-
+conversations_messages	voice_note	varchar(256)	YES	
+NULL
 conversations_messages	product_post_id	int(10) unsigned	YES	
 NULL
 conversations_messages	reaction_like_count	int(10) unsigned	NO	
@@ -269,6 +271,8 @@ conversations_users	typing	enum('0','1')	NO
 '0'
 conversations_users	deleted	enum('0','1')	NO	
 '0'
+conversations_users	last_seen_time	datetime	YES	
+NULL
 courses_categories	category_id	int(10) unsigned	NO	PRI	
 courses_categories	category_parent_id	int(10) unsigned	NO	MUL	
 courses_categories	category_name	varchar(256)	NO	
@@ -1814,6 +1818,8 @@ stories	is_ads	enum('0','1')	NO
 '0'
 stories	time	datetime	NO	
 
+stories	media_count	int(11)	YES	
+1
 stories_media	media_id	int(10) unsigned	NO	PRI	
 stories_media	story_id	int(10) unsigned	NO	MUL	
 stories_media	source	varchar(256)	NO	
@@ -1824,6 +1830,12 @@ stories_media	text	text	NO
 
 stories_media	time	datetime	NO	
 
+stories_media	storage_type	varchar(64)	YES	
+'google-cloud'
+stories_media	storage_data	longtext	YES	
+NULL
+stories_media	thumbnail_path	varchar(500)	YES	
+NULL
 story_reactions	id	int(10) unsigned	NO	PRI	
 story_reactions	story_id	int(10) unsigned	NO	MUL	
 story_reactions	user_id	int(10) unsigned	NO	MUL	
@@ -2279,6 +2291,16 @@ users	plisio_txn_id	varchar(128)	YES
 NULL
 users	is_fake	enum('0','1')	NO	
 '0'
+users	user_referral_code	varchar(32)	YES	
+NULL
+users	user_last_active	datetime	YES	
+NULL
+users	user_online_status	enum('online','offline','away')	YES	
+'offline'
+users	fcm_token	varchar(255)	YES	
+NULL
+users	onesignal_user_id	varchar(100)	YES	
+NULL
 users_accounts	id	int(10) unsigned	NO	PRI	
 users_accounts	user_id	int(10) unsigned	NO	MUL	
 users_accounts	account_id	int(10) unsigned	NO	
@@ -2361,7 +2383,7 @@ users_searches	node_type	varchar(32)	NO
 users_searches	time	datetime	YES	
 NULL
 users_sessions	session_id	int(10) unsigned	NO	PRI	
-users_sessions	session_token	varchar(64)	NO	UNI	
+users_sessions	session_token	varchar(512)	YES	UNI	NULL
 users_sessions	session_date	datetime	NO	
 
 users_sessions	session_type	enum('W','A','I')	NO	
@@ -2375,6 +2397,8 @@ users_sessions	user_os	varchar(64)	NO
 users_sessions	user_os_version	varchar(64)	YES	
 NULL
 users_sessions	user_device_name	varchar(64)	YES	
+NULL
+users_sessions	refresh_token	text	YES	
 NULL
 users_sessions	session_onesignal_user_id	varchar(128)	YES	
 NULL
