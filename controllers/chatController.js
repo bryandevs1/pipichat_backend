@@ -503,9 +503,9 @@ class ChatController {
         conversation_id,
         user_id,
         message || "",
-        imagePath,
-        voiceNotePath,
-        video || null,
+        imagePath || "",
+        voiceNotePath || "",
+        video || "",
         product_post_id ? parseInt(product_post_id) : null,
       ]);
 
