@@ -450,10 +450,66 @@ function getIntervalUnit(period) {
   return periodMap[period] || "MONTH";
 }
 
+/**
+ * Cancel / unsubscribe from current membership package.
+ * Clears verification badge and boost quotas.
+ */
+const cancelSubscription = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const [[currentPackage]] = await db.query(
+      `SELECT pp.payment_id, pp.package_name
+       FROM packages_payments pp
+       WHERE pp.user_id = ?
+       ORDER BY pp.payment_date DESC
+       LIMIT 1`,
+      [userId],
+    );
+
+    if (!currentPackage) {
+      return res.status(400).json({
+        success: false,
+        message: "You do not have an active membership to cancel.",
+      });
+    }
+
+    // Reset user verification and boost quotas
+    await db.query(
+      `UPDATE users
+       SET user_verified = '0',
+           user_boosted_posts = 0,
+           user_boosted_pages = 0
+       WHERE user_id = ?`,
+      [userId],
+    );
+
+    // Remove the payment record and reset boost/verification
+    await db.query(
+      `DELETE FROM packages_payments
+       WHERE payment_id = ? AND user_id = ?`,
+      [currentPackage.payment_id, userId],
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Your "${currentPackage.package_name}" membership has been cancelled.`,
+    });
+  } catch (error) {
+    console.error("cancelSubscription error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to cancel membership",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getAllPackages,
   getUserPackage,
   getUserBoostedPosts,
   getUserBoostedPages,
   subscribeToPackage,
+  cancelSubscription,
 };

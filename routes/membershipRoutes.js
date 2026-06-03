@@ -52,4 +52,14 @@ router.get(
   membershipController.getUserBoostedPages,
 );
 
+/**
+ * Cancel current membership subscription
+ * POST /api/membership/cancel
+ */
+router.post(
+  "/cancel",
+  authenticateToken,
+  membershipController.cancelSubscription,
+);
+
 module.exports = router;
