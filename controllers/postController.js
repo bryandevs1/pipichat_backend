@@ -1740,14 +1740,24 @@ const postController = {
         });
       }
 
+      // Sync DB value if it's 0 but we calculated from package defaults
+      const userDbPosts = Number(userBalance?.user_boosted_posts || 0);
+      if (userDbPosts <= 0 && remainingPosts > 0) {
+        await connection.query(
+          `UPDATE users SET user_boosted_posts = ? WHERE user_id = ?`,
+          [remainingPosts, userId],
+        );
+      }
+
       await connection.query(
         `UPDATE posts SET boosted = '1', boosted_by = ? WHERE post_id = ?`,
         [userId, postId],
       );
 
+      // Cast to SIGNED to avoid BIGINT UNSIGNED overflow when value is 0
       await connection.query(
         `UPDATE users
-         SET user_boosted_posts = GREATEST(user_boosted_posts - 1, 0)
+         SET user_boosted_posts = GREATEST(CAST(user_boosted_posts AS SIGNED) - 1, 0)
          WHERE user_id = ?`,
         [userId],
       );
