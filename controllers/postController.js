@@ -1686,6 +1686,8 @@ const postController = {
           code: "PRO_REQUIRED",
           message: "You need an active Pro package to boost posts",
         });
+      }
+
       const [[userBalance]] = await connection.query(
         `SELECT
           u.user_boosted_posts,
