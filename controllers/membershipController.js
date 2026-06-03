@@ -149,14 +149,21 @@ const getUserPackage = async (req, res) => {
       });
     }
 
+    // Fallback to package defaults if user's boosted values are 0
+    // (handles fresh subscriptions where the user table hasn't been updated yet)
+    const boostPostsFromUser = Number(userPackage.user_boosted_posts || 0);
+    const boostPagesFromUser = Number(userPackage.user_boosted_pages || 0);
+    const boostPostsFromPkg = Number(userPackage.boost_posts || 0);
+    const boostPagesFromPkg = Number(userPackage.boost_pages || 0);
+
     res.status(200).json({
       success: true,
       data: {
         ...userPackage,
         user_verified: userPackage.user_verified === "1",
         is_active: true,
-        remaining_boosted_posts: Number(userPackage.user_boosted_posts || 0),
-        remaining_boosted_pages: Number(userPackage.user_boosted_pages || 0),
+        remaining_boosted_posts: boostPostsFromUser || boostPostsFromPkg,
+        remaining_boosted_pages: boostPagesFromUser || boostPagesFromPkg,
         days_left: Math.max(
           0,
           Math.ceil(
