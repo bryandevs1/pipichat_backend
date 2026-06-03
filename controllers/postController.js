@@ -1686,15 +1686,44 @@ const postController = {
           code: "PRO_REQUIRED",
           message: "You need an active Pro package to boost posts",
         });
-      }
-
       const [[userBalance]] = await connection.query(
-        `SELECT user_boosted_posts, user_boosted_pages FROM users WHERE user_id = ? LIMIT 1 FOR UPDATE`,
+        `SELECT
+          u.user_boosted_posts,
+          u.user_boosted_pages,
+          pp.payment_id,
+          p.boost_posts,
+          p.boost_pages,
+          p.boost_posts_enabled,
+          p.boost_pages_enabled
+         FROM users u
+         LEFT JOIN packages_payments pp ON pp.user_id = u.user_id
+         LEFT JOIN packages p ON pp.package_name = p.name
+         WHERE u.user_id = ?
+         ORDER BY pp.payment_date DESC
+         LIMIT 1`,
         [userId],
       );
 
-      const remainingPosts = Number(userBalance?.user_boosted_posts || 0);
-      const remainingPages = Number(userBalance?.user_boosted_pages || 0);
+      // Use user's stored boosted posts if > 0, otherwise fall back to package defaults
+      let remainingPosts = Number(userBalance?.user_boosted_posts || 0);
+      let remainingPages = Number(userBalance?.user_boosted_pages || 0);
+
+      // If user's stored value is 0 but they have an active membership with boost enabled,
+      // use the package's default boost count
+      if (remainingPosts <= 0 && userBalance?.payment_id) {
+        const pkgPostsEnabled =
+          userBalance.boost_posts_enabled === 1 || userBalance.boost_posts_enabled === '1';
+        if (pkgPostsEnabled) {
+          remainingPosts = Number(userBalance.boost_posts || 0);
+        }
+      }
+      if (remainingPages <= 0 && userBalance?.payment_id) {
+        const pkgPagesEnabled =
+          userBalance.boost_pages_enabled === 1 || userBalance.boost_pages_enabled === '1';
+        if (pkgPagesEnabled) {
+          remainingPages = Number(userBalance.boost_pages || 0);
+        }
+      }
 
       if (remainingPosts <= 0) {
         await connection.rollback();
