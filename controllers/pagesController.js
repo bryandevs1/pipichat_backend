@@ -1618,6 +1618,15 @@ class PagesController {
         throw new ValidationPageError("User not found");
       }
 
+      // Check the user actually has page-boost credits available (column is
+      // BIGINT UNSIGNED, so decrementing below 0 throws an out-of-range error).
+      const pageBoostBalance = Number(user[0].user_boosted_pages) || 0;
+      if (pageBoostBalance <= 0) {
+        throw new ValidationPageError(
+          "You don't have any page boosts left. Upgrade your membership to boost more pages.",
+        );
+      }
+
       // Check if page exists
       const [page] = await connection.query(
         "SELECT page_title, page_admin FROM pages WHERE page_id = ?",
@@ -1634,9 +1643,9 @@ class PagesController {
         [currentUserId, pageId],
       );
 
-      // Deduct from user's boost credits
+      // Deduct from user's boost credits (guarded so it can never go below 0)
       await connection.query(
-        "UPDATE users SET user_boosted_pages = user_boosted_pages - 1 WHERE user_id = ?",
+        "UPDATE users SET user_boosted_pages = GREATEST(CAST(user_boosted_pages AS SIGNED) - 1, 0) WHERE user_id = ?",
         [currentUserId],
       );
 
@@ -1687,7 +1696,7 @@ class PagesController {
         message: "Page boosted successfully!",
         data: {
           boost_end: boostEndDate,
-          remaining_credits: user[0].user_boosted_pages - 1,
+          remaining_credits: Math.max(pageBoostBalance - 1, 0),
           duration_days: duration_days,
         },
       });

@@ -1,5 +1,8 @@
 const db = require("../config/db");
 const jwt = require("jsonwebtoken");
+const fs = require("node:fs");
+const path = require("node:path");
+const { GoogleAuth } = require("google-auth-library");
 
 const getExpiryDate = (paymentDate, period, periodNum) => {
   const baseDate = new Date(paymentDate);
@@ -30,6 +33,272 @@ const getExpiryDate = (paymentDate, period, periodNum) => {
   }
 
   return expiry;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// In-App Purchase (StoreKit / Google Play) verification
+// ─────────────────────────────────────────────────────────────────────────────
+
+const httpPostJson = async (url, body) => {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+};
+
+/**
+ * Verify an iOS receipt against Apple's verifyReceipt endpoint.
+ * Returns the parsed response (status 0 == valid).
+ */
+const verifyAppleReceipt = async (receipt) => {
+  const secret = process.env.APPLE_SHARED_SECRET;
+  if (!secret || !receipt) {
+    throw new Error("Apple IAP is not configured (missing APPLE_SHARED_SECRET)");
+  }
+
+  const payload = {
+    "receipt-data": receipt,
+    password: secret,
+    "exclude-old-transactions": true,
+  };
+
+  const prod = await httpPostJson(
+    "https://buy.itunes.apple.com/verifyReceipt",
+    payload,
+  );
+
+  // 21007 = receipt from the sandbox environment - retry against sandbox.
+  if (prod.status === 21007) {
+    return httpPostJson(
+      "https://sandbox.itunes.apple.com/verifyReceipt",
+      payload,
+    );
+  }
+
+  return prod;
+};
+
+const appleEntitlementActive = (result, productId) => {
+  if (!result || result.status !== 0) return false;
+  const infos = result.latest_receipt_info || [];
+  const match = infos.find((i) => i.product_id === productId);
+  if (!match) return false;
+  const nowMs = Date.now();
+  const expMs = Number(match.expires_date_ms);
+  if (expMs && expMs > nowMs) return true;
+  if (match.expires_date && new Date(match.expires_date).getTime() > nowMs) {
+    return true;
+  }
+  // Non-expiring entitlement -> treat as valid.
+  return !match.expires_date_ms && !match.expires_date;
+};
+
+let cachedGoogleToken = null;
+let cachedGoogleTokenAt = 0;
+
+const getGoogleAccessToken = async () => {
+  const keyFile = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON;
+  if (!keyFile) {
+    throw new Error(
+      "Google Play IAP is not configured (missing GOOGLE_PLAY_SERVICE_ACCOUNT_JSON)",
+    );
+  }
+  const abs = path.resolve(keyFile);
+  if (!fs.existsSync(abs)) {
+    throw new Error(`Google Play service account file not found: ${abs}`);
+  }
+
+  // Tokens are valid for ~1h; cache for 55 min.
+  if (cachedGoogleToken && Date.now() - cachedGoogleTokenAt < 55 * 60 * 1000) {
+    return cachedGoogleToken;
+  }
+
+  const auth = new GoogleAuth({
+    keyFile: abs,
+    scopes: ["https://www.googleapis.com/auth/androidpublisher"],
+  });
+  const token = await auth.getAccessToken();
+  cachedGoogleToken = token;
+  cachedGoogleTokenAt = Date.now();
+  return token;
+};
+
+/**
+ * Verify an Android purchase token against the Google Play Developer API
+ * (subscriptionsv2). Returns the subscription object if valid.
+ */
+const verifyGoogleSubscription = async (purchaseToken) => {
+  const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME;
+  if (!packageName) {
+    throw new Error(
+      "Google Play IAP is not configured (missing GOOGLE_PLAY_PACKAGE_NAME)",
+    );
+  }
+  const accessToken = await getGoogleAccessToken();
+  const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${packageName}/purchases/subscriptionsv2/tokens/${encodeURIComponent(purchaseToken)}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Google Play verification failed (${res.status}): ${text}`);
+  }
+  return res.json();
+};
+
+const googleSubscriptionActive = (sub) => {
+  if (!sub) return false;
+  const expiry = sub.expiryTime ? new Date(sub.expiryTime).getTime() : 0;
+  return expiry > Date.now();
+};
+
+const findPackageForProduct = async (connection, productId) => {
+  // Weekly is the default plan product (pipipremiumweekly).
+  let like = "%Week%";
+  if (/month/i.test(productId)) like = "%Month%";
+  else if (/year|annual/i.test(productId)) like = "%Year%";
+  const [rows] = await connection.query(
+    `SELECT * FROM packages WHERE period LIKE ? ORDER BY package_id ASC LIMIT 1`,
+    [like],
+  );
+  return rows[0] || null;
+};
+
+const flagOn = (v) => v === "1" || v === 1 || String(v) === "true";
+
+/**
+ * Grant a membership package to a user (no wallet charge - used for IAP).
+ */
+const grantPackageToUser = async (connection, pkg, userId) => {
+  const amount = Number.parseFloat(pkg.price) || 0;
+  const boostPosts = flagOn(pkg.boost_posts_enabled)
+    ? Number(pkg.boost_posts || 0)
+    : 0;
+  const boostPages = flagOn(pkg.boost_pages_enabled)
+    ? Number(pkg.boost_pages || 0)
+    : 0;
+
+  await connection.query(
+    `UPDATE users
+     SET user_verified = '1',
+         user_boosted_posts = ?,
+         user_boosted_pages = ?
+     WHERE user_id = ?`,
+    [boostPosts, boostPages, userId],
+  );
+
+  await connection.query(
+    `INSERT INTO packages_payments (payment_date, package_name, package_price, user_id)
+     VALUES (NOW(), ?, ?, ?)`,
+    [pkg.name, amount, userId],
+  );
+};
+
+/**
+ * POST /api/membership/iap/verify
+ * Called by the app after a native StoreKit / Google Play purchase.
+ * Body: { platform: 'ios'|'android', productId, transactionId?, receipt? }
+ *  - ios:     `receipt` is the base64 transaction receipt
+ *  - android: `transactionId` is the Play purchase token
+ */
+const verifyIapSubscription = async (req, res) => {
+  const userId = req.user.id;
+  const { platform, productId, transactionId, receipt } = req.body || {};
+
+  if (!platform || !productId) {
+    return res.status(400).json({
+      success: false,
+      message: "platform and productId are required",
+    });
+  }
+
+  let connection;
+  try {
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    if (platform === "ios") {
+      if (!receipt) {
+        return res.status(400).json({
+          success: false,
+          message: "receipt is required for iOS purchases",
+        });
+      }
+      const result = await verifyAppleReceipt(receipt);
+      if (result.status !== 0) {
+        const message = {
+          21000: "App Store environment error",
+          21002: "receipt-data is malformed",
+          21003: "Receipt could not be authenticated",
+          21004: "Shared secret does not match",
+          21005: "Receipt server unavailable",
+          21008: "Wrong environment (production vs sandbox)",
+        }[result.status] || `Apple verification failed (status ${result.status})`;
+        return res
+          .status(400)
+          .json({ success: false, message });
+      }
+      if (!appleEntitlementActive(result, productId)) {
+        return res.status(400).json({
+          success: false,
+          message: "No active subscription found for this product",
+        });
+      }
+    } else if (platform === "android") {
+      const token = transactionId || (typeof receipt === "string" ? receipt : null);
+      if (!token) {
+        return res.status(400).json({
+          success: false,
+          message: "transactionId is required for Android purchases",
+        });
+      }
+      const sub = await verifyGoogleSubscription(token);
+      if (!googleSubscriptionActive(sub)) {
+        return res.status(400).json({
+          success: false,
+          message: "No active subscription found for this purchase",
+        });
+      }
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "platform must be 'ios' or 'android'",
+      });
+    }
+
+    const pkg = await findPackageForProduct(connection, productId);
+    if (!pkg) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "No membership plan matches this product",
+      });
+    }
+
+    await grantPackageToUser(connection, pkg, userId);
+    await connection.commit();
+
+    return res.json({
+      success: true,
+      message: `Membership activated (${pkg.name})`,
+      data: {
+        package_id: pkg.package_id,
+        package_name: pkg.name,
+        package_price: Number.parseFloat(pkg.price) || 0,
+      },
+    });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error("verifyIapSubscription error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to verify IAP purchase",
+    });
+  } finally {
+    if (connection) connection.release();
+  }
 };
 
 /**
@@ -519,4 +788,5 @@ module.exports = {
   getUserBoostedPages,
   subscribeToPackage,
   cancelSubscription,
+  verifyIapSubscription,
 };

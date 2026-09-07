@@ -62,4 +62,15 @@ router.post(
   membershipController.cancelSubscription,
 );
 
+/**
+ * Verify an In-App Purchase receipt (Apple StoreKit / Google Play)
+ * and activate the matching membership.
+ * POST /api/membership/iap/verify
+ */
+router.post(
+  "/iap/verify",
+  authenticateToken,
+  membershipController.verifyIapSubscription,
+);
+
 module.exports = router;

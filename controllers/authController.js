@@ -528,15 +528,15 @@ async function signup(req, res) {
   const user_password = password;
   const user_firstname = firstName;
   const user_lastname = lastName || "";
-  const user_gender = gender || 0;
-  const user_birthdate = birthdate;
+  // Gender & birthdate are OPTIONAL (App Store guideline 5.1.1(v)).
+  const user_gender = gender ? gender : null;
+  const user_birthdate = birthdate || null;
 
   const requiredFields = {
     user_name,
     user_email,
     user_password,
     user_firstname,
-    user_birthdate,
   };
   const missingFields = Object.keys(requiredFields).filter(
     (key) => !requiredFields[key],
@@ -548,14 +548,18 @@ async function signup(req, res) {
     });
   }
 
-  const formattedDate =
-    user_birthdate instanceof Date
-      ? user_birthdate.toISOString().split("T")[0]
-      : String(user_birthdate);
-  if (!isValidDate(formattedDate)) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Invalid birthdate format" });
+  // Only validate the date if the user actually provided one.
+  let formattedDate = null;
+  if (user_birthdate) {
+    formattedDate =
+      user_birthdate instanceof Date
+        ? user_birthdate.toISOString().split("T")[0]
+        : String(user_birthdate);
+    if (!isValidDate(formattedDate)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid birthdate format" });
+    }
   }
 
   let connection;
