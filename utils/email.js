@@ -1,5 +1,7 @@
 // utils/email.js
 const nodemailer = require("nodemailer");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // === ZOHO MAIL SMTP CONFIGURATION ===
 const transporter = nodemailer.createTransport({
@@ -28,6 +30,26 @@ transporter.verify((error, success) => {
   }
 });
 
+// Persist email failures to backend/logs/email-errors.log so they are not
+// only visible in the (often hidden) server console.
+function logEmailError(mailOptions, error) {
+  try {
+    const logDir = path.join(__dirname, "..", "logs");
+    fs.mkdirSync(logDir, { recursive: true });
+    const line = [
+      `[${new Date().toISOString()}]`,
+      `to=${mailOptions?.to ?? "?"}`,
+      `subject=${mailOptions?.subject ?? "?"}`,
+      `code=${error?.code ?? ""}`,
+      `response=${(error?.response ?? "").toString().slice(0, 500)}`,
+      `error=${error?.message ?? ""}`,
+    ].join(" | ");
+    fs.appendFileSync(path.join(logDir, "email-errors.log"), line + "\n");
+  } catch (logErr) {
+    console.error("Failed to write email error log:", logErr.message);
+  }
+}
+
 // Reusable send function
 async function sendEmail(mailOptions) {
   try {
@@ -39,6 +61,7 @@ async function sendEmail(mailOptions) {
     if (error.response) {
       console.error("SMTP Response:", error.response);
     }
+    logEmailError(mailOptions, error);
     return false;
   }
 }

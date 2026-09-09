@@ -671,11 +671,16 @@ async function signup(req, res) {
 
     // ✅ DO NOT return tokens on signup - email must be verified first
     // Send verification email (code only, no URL)
-    sendVerificationEmail(
-      user_email,
-      emailVerificationCode,
-      null, // Don't send verification URL, just the code
-    ).catch(console.error);
+    let emailSent = false;
+    try {
+      emailSent = await sendVerificationEmail(
+        user_email,
+        emailVerificationCode,
+        null, // Don't send verification URL, just the code
+      );
+    } catch (sendErr) {
+      console.error("sendVerificationEmail threw:", sendErr);
+    }
 
     // Get fresh user data
     const [newUserRows] = await pool.query(
@@ -686,8 +691,10 @@ async function signup(req, res) {
 
     res.status(201).json({
       success: true,
-      message:
-        "User registered successfully. Please check your email to verify your account.",
+      message: emailSent
+        ? "User registered successfully. Please check your email to verify your account."
+        : "Account created, but we couldn't send the verification email. Use 'Resend code' to try again.",
+      email_sent: emailSent,
       user: {
         user_id: newUser.user_id,
         user_name: newUser.user_name,
