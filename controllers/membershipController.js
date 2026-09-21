@@ -3,6 +3,11 @@ const jwt = require("jsonwebtoken");
 const fs = require("node:fs");
 const path = require("node:path");
 const { GoogleAuth } = require("google-auth-library");
+const {
+  decodeNotification,
+  GRANTING_TYPES,
+  REVOKING_TYPES,
+} = require("../services/appleNotifications");
 
 const getExpiryDate = (paymentDate, period, periodNum) => {
   const baseDate = new Date(paymentDate);
@@ -80,21 +85,6 @@ const verifyAppleReceipt = async (receipt) => {
   return prod;
 };
 
-const appleEntitlementActive = (result, productId) => {
-  if (!result || result.status !== 0) return false;
-  const infos = result.latest_receipt_info || [];
-  const match = infos.find((i) => i.product_id === productId);
-  if (!match) return false;
-  const nowMs = Date.now();
-  const expMs = Number(match.expires_date_ms);
-  if (expMs && expMs > nowMs) return true;
-  if (match.expires_date && new Date(match.expires_date).getTime() > nowMs) {
-    return true;
-  }
-  // Non-expiring entitlement -> treat as valid.
-  return !match.expires_date_ms && !match.expires_date;
-};
-
 let cachedGoogleToken = null;
 let cachedGoogleTokenAt = 0;
 
@@ -153,7 +143,6 @@ const googleSubscriptionActive = (sub) => {
   const expiry = sub.expiryTime ? new Date(sub.expiryTime).getTime() : 0;
   return expiry > Date.now();
 };
-
 const findPackageForProduct = async (connection, productId) => {
   // Weekly is the default plan product (pipipremiumweekly).
   let like = "%Week%";
@@ -169,9 +158,54 @@ const findPackageForProduct = async (connection, productId) => {
 const flagOn = (v) => v === "1" || v === 1 || String(v) === "true";
 
 /**
- * Grant a membership package to a user (no wallet charge - used for IAP).
+ * Pick the newest matching transaction from the App Store receipt.
+ * Returns null when the receipt has no entry for this product.
  */
-const grantPackageToUser = async (connection, pkg, userId) => {
+const appleTransactionFor = (result, productId) => {
+  const infos = [
+    ...(result?.latest_receipt_info || []),
+    ...(result?.receipt?.in_app || []),
+  ].filter((i) => i.product_id === productId);
+  if (infos.length === 0) return null;
+
+  // Newest first: expires_date_ms when present, otherwise purchase_date_ms.
+  const sortKey = (i) =>
+    Number(i.expires_date_ms || i.purchase_date_ms || 0);
+  const newestFirst = [...infos].sort((a, b) => sortKey(b) - sortKey(a));
+  return newestFirst[0];
+};
+
+const msToDate = (value) => {
+  if (!value) return null;
+  // Apple sends epoch milliseconds (number or numeric string); some fields
+  // arrive as ISO-8601 strings instead.
+  const asNumber = Number(value);
+  if (Number.isFinite(asNumber) && asNumber > 0) return new Date(asNumber);
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+/**
+ * Grant a membership package to a user (no wallet charge - used for IAP).
+ *
+ * Idempotent: `packages_payments.transaction_id` carries a UNIQUE index, so a
+ * repeated "Restore Purchases" (or a redelivered store notification) reuses the
+ * existing row instead of inserting a duplicate payment.
+ *
+ * @returns {Promise<{alreadyGranted: boolean, paymentId: number|null}>}
+ */
+const grantPackageToUser = async (
+  connection,
+  pkg,
+  userId,
+  {
+    platform = "wallet",
+    storeProductId = null,
+    transactionId = null,
+    originalTransactionId = null,
+    expiresDate = null,
+  } = {},
+) => {
   const amount = Number.parseFloat(pkg.price) || 0;
   const boostPosts = flagOn(pkg.boost_posts_enabled)
     ? Number(pkg.boost_posts || 0)
@@ -179,6 +213,18 @@ const grantPackageToUser = async (connection, pkg, userId) => {
   const boostPages = flagOn(pkg.boost_pages_enabled)
     ? Number(pkg.boost_pages || 0)
     : 0;
+
+  // Already recorded -> nothing to grant, but make sure boosts are intact.
+  if (transactionId) {
+    const [[existing]] = await connection.query(
+      `SELECT payment_id FROM packages_payments
+       WHERE transaction_id = ? LIMIT 1`,
+      [transactionId],
+    );
+    if (existing) {
+      return { alreadyGranted: true, paymentId: existing.payment_id };
+    }
+  }
 
   await connection.query(
     `UPDATE users
@@ -189,11 +235,121 @@ const grantPackageToUser = async (connection, pkg, userId) => {
     [boostPosts, boostPages, userId],
   );
 
-  await connection.query(
-    `INSERT INTO packages_payments (payment_date, package_name, package_price, user_id)
-     VALUES (NOW(), ?, ?, ?)`,
-    [pkg.name, amount, userId],
+  const [insertResult] = await connection.query(
+    `INSERT INTO packages_payments
+       (payment_date, package_name, package_price, user_id,
+        store_product_id, platform, transaction_id, original_transaction_id,
+        expires_date, auto_renew_status)
+     VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, '1')`,
+    [
+      pkg.name,
+      amount,
+      userId,
+      storeProductId,
+      platform,
+      transactionId,
+      originalTransactionId,
+      expiresDate,
+    ],
   );
+
+  return { alreadyGranted: false, paymentId: insertResult.insertId };
+};
+
+/**
+ * Resolve the store-issued identifiers for an iOS purchase so the server can:
+ *   - deduplicate repeated receipts (transactionId)
+ *   - match future renewals to this user (originalTransactionId)
+ *   - trust the store's expiry rather than guessing it
+ */
+const resolveAppleTransaction = async (productId, body) => {
+  const { receipt } = body;
+  if (!receipt) {
+    throw Object.assign(new Error("receipt is required for iOS purchases"), {
+      statusCode: 400,
+    });
+  }
+
+  const result = await verifyAppleReceipt(receipt);
+  if (result.status !== 0) {
+    const message =
+      {
+        21000: "App Store environment error",
+        21002: "receipt-data is malformed",
+        21003: "Receipt could not be authenticated",
+        21004: "Shared secret does not match",
+        21005: "Receipt server unavailable",
+        21008: "Wrong environment (production vs sandbox)",
+      }[result.status] || `Apple verification failed (status ${result.status})`;
+    throw Object.assign(new Error(message), { statusCode: 400 });
+  }
+
+  const tx = appleTransactionFor(result, productId);
+  if (!tx) {
+    throw Object.assign(
+      new Error("No active subscription found for this product"),
+      { statusCode: 400 },
+    );
+  }
+
+  // A lapsed entry is not an entitlement.
+  const expMs = Number(tx.expires_date_ms || 0);
+  if (expMs > 0 && expMs <= Date.now()) {
+    throw Object.assign(
+      new Error(
+        "This subscription has expired. Renew in the App Store to reactivate.",
+      ),
+      { statusCode: 400 },
+    );
+  }
+
+  return {
+    transactionId: tx.transaction_id || null,
+    originalTransactionId:
+      tx.original_transaction_id || tx.transaction_id || null,
+    expiresDate: msToDate(expMs) || msToDate(tx.expires_date),
+  };
+};
+
+/**
+ * Resolve the store-issued identifiers for an Android purchase.
+ * For Play, the purchase token is the stable subscription identifier.
+ */
+const resolveAndroidTransaction = async (body) => {
+  const token =
+    body.transactionId ||
+    (typeof body.receipt === "string" ? body.receipt : null);
+  if (!token) {
+    throw Object.assign(
+      new Error("transactionId is required for Android purchases"),
+      { statusCode: 400 },
+    );
+  }
+
+  const sub = await verifyGoogleSubscription(token);
+  if (!googleSubscriptionActive(sub)) {
+    throw Object.assign(
+      new Error("No active subscription found for this purchase"),
+      { statusCode: 400 },
+    );
+  }
+
+  return {
+    transactionId: token,
+    originalTransactionId: token,
+    expiresDate: sub.expiryTime ? new Date(sub.expiryTime) : null,
+  };
+};
+
+/**
+ * Dispatch to the per-platform verifier.
+ */
+const resolveStoreTransaction = (platform, productId, body) => {
+  if (platform === "ios") return resolveAppleTransaction(productId, body);
+  if (platform === "android") return resolveAndroidTransaction(body);
+  throw Object.assign(new Error("platform must be 'ios' or 'android'"), {
+    statusCode: 400,
+  });
 };
 
 /**
@@ -202,10 +358,13 @@ const grantPackageToUser = async (connection, pkg, userId) => {
  * Body: { platform: 'ios'|'android', productId, transactionId?, receipt? }
  *  - ios:     `receipt` is the base64 transaction receipt
  *  - android: `transactionId` is the Play purchase token
+ *
+ * Idempotent - repeating the same receipt returns the existing membership
+ * rather than inserting a second payment row.
  */
 const verifyIapSubscription = async (req, res) => {
   const userId = req.user.id;
-  const { platform, productId, transactionId, receipt } = req.body || {};
+  const { platform, productId } = req.body || {};
 
   if (!platform || !productId) {
     return res.status(400).json({
@@ -216,57 +375,10 @@ const verifyIapSubscription = async (req, res) => {
 
   let connection;
   try {
+    const store = await resolveStoreTransaction(platform, productId, req.body);
+
     connection = await db.getConnection();
     await connection.beginTransaction();
-
-    if (platform === "ios") {
-      if (!receipt) {
-        return res.status(400).json({
-          success: false,
-          message: "receipt is required for iOS purchases",
-        });
-      }
-      const result = await verifyAppleReceipt(receipt);
-      if (result.status !== 0) {
-        const message = {
-          21000: "App Store environment error",
-          21002: "receipt-data is malformed",
-          21003: "Receipt could not be authenticated",
-          21004: "Shared secret does not match",
-          21005: "Receipt server unavailable",
-          21008: "Wrong environment (production vs sandbox)",
-        }[result.status] || `Apple verification failed (status ${result.status})`;
-        return res
-          .status(400)
-          .json({ success: false, message });
-      }
-      if (!appleEntitlementActive(result, productId)) {
-        return res.status(400).json({
-          success: false,
-          message: "No active subscription found for this product",
-        });
-      }
-    } else if (platform === "android") {
-      const token = transactionId || (typeof receipt === "string" ? receipt : null);
-      if (!token) {
-        return res.status(400).json({
-          success: false,
-          message: "transactionId is required for Android purchases",
-        });
-      }
-      const sub = await verifyGoogleSubscription(token);
-      if (!googleSubscriptionActive(sub)) {
-        return res.status(400).json({
-          success: false,
-          message: "No active subscription found for this purchase",
-        });
-      }
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: "platform must be 'ios' or 'android'",
-      });
-    }
 
     const pkg = await findPackageForProduct(connection, productId);
     if (!pkg) {
@@ -277,22 +389,38 @@ const verifyIapSubscription = async (req, res) => {
       });
     }
 
-    await grantPackageToUser(connection, pkg, userId);
+    const { alreadyGranted, paymentId } = await grantPackageToUser(
+      connection,
+      pkg,
+      userId,
+      {
+        platform,
+        storeProductId: productId,
+        transactionId: store.transactionId,
+        originalTransactionId: store.originalTransactionId,
+        expiresDate: store.expiresDate,
+      },
+    );
     await connection.commit();
 
     return res.json({
       success: true,
-      message: `Membership activated (${pkg.name})`,
+      message: alreadyGranted
+        ? `Membership already active (${pkg.name})`
+        : `Membership activated (${pkg.name})`,
       data: {
         package_id: pkg.package_id,
         package_name: pkg.name,
         package_price: Number.parseFloat(pkg.price) || 0,
+        payment_id: paymentId,
+        expires_date: store.expiresDate,
+        already_granted: alreadyGranted,
       },
     });
   } catch (error) {
     if (connection) await connection.rollback();
     console.error("verifyIapSubscription error:", error.message);
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
       message: error.message || "Failed to verify IAP purchase",
     });
@@ -363,6 +491,8 @@ const getUserPackage = async (req, res) => {
         pp.package_name,
         pp.package_price,
         pp.user_id,
+        pp.platform,
+        pp.auto_renew_status,
         p.package_id,
         p.price,
         p.period,
@@ -381,13 +511,25 @@ const getUserPackage = async (req, res) => {
         u.user_verified,
         u.user_boosted_posts,
         u.user_boosted_pages,
-        CASE p.period
-          WHEN 'Day' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num DAY)
-          WHEN 'Week' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num WEEK)
-          WHEN 'Month' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num MONTH)
-          WHEN 'Year' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num YEAR)
-          ELSE DATE_ADD(pp.payment_date, INTERVAL p.period_num MONTH)
-        END as expiry_date
+        pp.expires_date,
+        -- Prefer the store-reported expiry when we have it (authoritative for
+        -- IAP subscriptions). Otherwise derive it from the package period.
+        --
+        -- LOWER() is deliberate: the packages.period values are stored as
+        -- 'week'/'month' etc, while these WHEN labels are capitalised, and the
+        -- comparison would only work by accident on a case-insensitive
+        -- collation. On a _bin/_cs collation the old form fell through to the
+        -- ELSE branch, which grants MONTHS for a weekly plan.
+        COALESCE(
+          pp.expires_date,
+          CASE LOWER(p.period)
+            WHEN 'day' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num DAY)
+            WHEN 'week' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num WEEK)
+            WHEN 'month' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num MONTH)
+            WHEN 'year' THEN DATE_ADD(pp.payment_date, INTERVAL p.period_num YEAR)
+            ELSE DATE_ADD(pp.payment_date, INTERVAL p.period_num MONTH)
+          END
+        ) as expiry_date
       FROM packages_payments pp
       JOIN packages p ON pp.package_name = p.name
       JOIN users u ON pp.user_id = u.user_id
@@ -781,6 +923,187 @@ const cancelSubscription = async (req, res) => {
   }
 };
 
+/**
+ * Apply a renewal / grant notification: record the new payment (if unseen) and
+ * keep the user entitled for the new period.
+ */
+const applyGrantingNotification = async (connection, ctx) => {
+  const {
+    notification,
+    transaction,
+    userId,
+    originalTransactionId,
+    productId,
+    expiresMs,
+  } = ctx;
+
+  const txId = transaction?.transactionId || null;
+
+  // Apple redelivers notifications; skip a transaction we already recorded.
+  const [[dupe]] = txId
+    ? await connection.query(
+        `SELECT payment_id FROM packages_payments WHERE transaction_id = ? LIMIT 1`,
+        [txId],
+      )
+    : [[null]];
+
+  if (!dupe) {
+    const pkg = await findPackageForProduct(connection, productId);
+    if (pkg) {
+      await connection.query(
+        `INSERT INTO packages_payments
+           (payment_date, package_name, package_price, user_id,
+            store_product_id, platform, transaction_id, original_transaction_id,
+            expires_date, auto_renew_status)
+         VALUES (NOW(), ?, ?, ?, ?, 'ios', ?, ?, ?, '1')`,
+        [
+          pkg.name,
+          Number.parseFloat(pkg.price) || 0,
+          userId,
+          productId,
+          txId,
+          originalTransactionId,
+          msToDate(expiresMs),
+        ],
+      );
+    }
+  }
+
+  await connection.query(
+    `UPDATE users SET user_verified = '1' WHERE user_id = ?`,
+    [userId],
+  );
+
+  // Users may switch auto-renew off and keep access until the period ends.
+  if (notification.renewalInfo?.autoRenewStatus === 0) {
+    await connection.query(
+      `UPDATE packages_payments SET auto_renew_status = '0'
+       WHERE original_transaction_id = ?`,
+      [originalTransactionId],
+    );
+  }
+};
+
+/**
+ * Apply an expiry / refund / revoke notification: end the entitlement.
+ */
+const applyRevokingNotification = async (connection, ctx) => {
+  const { userId, originalTransactionId, expiresMs } = ctx;
+
+  await connection.query(
+    `UPDATE users
+     SET user_verified = '0', user_boosted_posts = 0, user_boosted_pages = 0
+     WHERE user_id = ?`,
+    [userId],
+  );
+  await connection.query(
+    `UPDATE packages_payments
+     SET auto_renew_status = '0', expires_date = ?
+     WHERE original_transaction_id = ?`,
+    [msToDate(expiresMs) || new Date(), originalTransactionId],
+  );
+};
+
+/**
+ * POST /api/membership/app-store-notifications
+ * App Store Server Notifications V2 webhook (configure this URL in
+ * App Store Connect -> App Information -> App Store Server Notifications).
+ *
+ * Handles the renewal lifecycle so memberships do not silently expire at every
+ * billing period. Apple retries non-2xx responses, so once the payload is
+ * authentic and understood we return 200; transient failures return 500 so
+ * Apple retries.
+ *
+ * No auth middleware: Apple calls this server-to-server. Authenticity comes
+ * from the JWS signature chain, not a bearer token.
+ */
+const handleAppStoreNotification = async (req, res) => {
+  const { signedPayload } = req.body || {};
+
+  if (!signedPayload) {
+    return res
+      .status(400)
+      .json({ success: false, message: "signedPayload is required" });
+  }
+
+  let notification;
+  try {
+    notification = decodeNotification(signedPayload);
+  } catch (error) {
+    console.error("App Store notification verification failed:", error.message);
+    return res.status(401).json({ success: false, message: "Invalid signature" });
+  }
+
+  const { notificationType, subtype, transaction } = notification;
+  const subtypeLabel = subtype ? `/${subtype}` : "";
+  console.log(`App Store notification: ${notificationType}${subtypeLabel}`);
+
+  const originalTransactionId = transaction?.originalTransactionId;
+  const productId = transaction?.productId;
+  const expiresMs = Number(transaction?.expiresDate || 0);
+
+  if (!originalTransactionId) {
+    return res
+      .status(200)
+      .json({ success: true, ignored: "no originalTransactionId" });
+  }
+
+  let connection;
+  try {
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    // Correlate to a local user via any prior grant of this subscription.
+    const [[existing]] = await connection.query(
+      `SELECT user_id FROM packages_payments
+       WHERE original_transaction_id = ?
+       ORDER BY payment_date DESC LIMIT 1`,
+      [originalTransactionId],
+    );
+
+    if (!existing) {
+      await connection.rollback();
+      console.warn(
+        `App Store notification for unknown subscription ${originalTransactionId} (${notificationType}) - nothing to update.`,
+      );
+      return res
+        .status(200)
+        .json({ success: true, ignored: "unknown subscription" });
+    }
+
+    const ctx = {
+      notification,
+      transaction,
+      userId: existing.user_id,
+      originalTransactionId,
+      productId,
+      expiresMs,
+    };
+
+    if (GRANTING_TYPES.has(notificationType)) {
+      await applyGrantingNotification(connection, ctx);
+    } else if (REVOKING_TYPES.has(notificationType)) {
+      await applyRevokingNotification(connection, ctx);
+    } else {
+      // e.g. DID_CHANGE_RENEWAL_STATUS, CONSUMPTION_REQUEST - no entitlement
+      // change. Acknowledge so Apple stops retrying.
+      await connection.rollback();
+      return res.status(200).json({ success: true, ignored: notificationType });
+    }
+
+    await connection.commit();
+    return res.status(200).json({ success: true, handled: notificationType });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error("handleAppStoreNotification error:", error.message);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to process notification" });
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
 module.exports = {
   getAllPackages,
   getUserPackage,
@@ -789,4 +1112,5 @@ module.exports = {
   subscribeToPackage,
   cancelSubscription,
   verifyIapSubscription,
+  handleAppStoreNotification,
 };

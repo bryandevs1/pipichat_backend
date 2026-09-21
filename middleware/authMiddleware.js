@@ -36,6 +36,7 @@ async function authenticateToken(req, res, next) {
 
     req.user = {
       id: decoded.id,
+      user_id: decoded.id, // alias used by several controllers (e.g. storyController)
       email: decoded.email,
     };
 
@@ -100,6 +101,7 @@ function authenticateUser(req, res, next) {
 
     req.user = decoded; // full payload
     req.user.id = decoded.id; // ensure consistency
+    req.user.user_id = decoded.id; // alias used by several controllers
 
     return next();
   } catch (error) {

@@ -148,6 +148,23 @@ app.use("/api/reels", reelRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/uploads", uploadRoutes);
 
+// Scheduled jobs.
+//
+// reminderJob registers its own node-cron schedule as a side effect of being
+// required, so importing it is what actually starts the event reminders. It was
+// never imported before, so those reminders never ran.
+//
+// Guarded because `node-cron` is NOT declared in package.json - if it is not
+// installed, this must not take the whole server down on boot. Install it with
+// `npm install node-cron` to enable the reminders.
+try {
+  require("./controllers/reminderJob");
+} catch (err) {
+  console.warn(
+    `Scheduled jobs disabled (${err.message}). Run "npm install node-cron" to enable event reminders.`,
+  );
+}
+
 // Global error handler (captures 413 + multer limits with clear logs)
 app.use((err, req, res, next) => {
   if (!err) return next();

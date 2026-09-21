@@ -73,4 +73,18 @@ router.post(
   membershipController.verifyIapSubscription,
 );
 
+/**
+ * App Store Server Notifications V2 webhook.
+ *
+ * Called by Apple (not the app), so there is NO authenticateToken here -
+ * authenticity is proved by verifying the JWS signature chain instead.
+ * Configure this URL in App Store Connect:
+ *   App Information -> App Store Server Notifications
+ * POST /api/membership/app-store-notifications
+ */
+router.post(
+  "/app-store-notifications",
+  membershipController.handleAppStoreNotification,
+);
+
 module.exports = router;
