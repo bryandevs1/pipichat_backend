@@ -200,9 +200,12 @@ app.use((err, req, res, next) => {
     // Differentiate between Nginx/Cloudflare/Express rejection
     let source = "unknown";
     if (err.type === "entity.too.large") source = "Express (body-parser limit)";
-    else if (err.code === "LIMIT_FILE_SIZE") source = "Multer (file size limit)";
-    else if (cfRay !== "none") source = "Cloudflare (check your Cloudflare upload limit)";
-    else source = "Likely Nginx (check client_max_body_size in your Nginx config)";
+    else if (err.code === "LIMIT_FILE_SIZE")
+      source = "Multer (file size limit)";
+    else if (cfRay !== "none")
+      source = "Cloudflare (check your Cloudflare upload limit)";
+    else
+      source = "Likely Nginx (check client_max_body_size in your Nginx config)";
 
     console.error(`🔍 413 SOURCE DETECTED: ${source}`);
 

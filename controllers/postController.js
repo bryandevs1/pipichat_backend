@@ -7,6 +7,11 @@ const PointsService = require("../services/pointsService");
 const NotificationService = require("../services/notificationService");
 const POINTS_CONFIG = require("../utils/pointsConfig");
 const db = require("../config/db");
+const {
+  REPORT_CATEGORY_ID,
+  sendModerationEmail,
+  screenContent,
+} = require("../services/moderationService");
 
 const postController = {
   // ==================== CREATE POST ====================
@@ -38,6 +43,22 @@ const postController = {
         feeling_value,
         colored_pattern,
       } = req.body;
+
+      // App Store Guideline 1.2: apps with user-generated content must have a
+      // method for filtering objectionable material from being posted. This
+      // screens the text body before it is persisted. It is a first pass, not a
+      // substitute for human moderation after reports.
+      const screen = screenContent(text);
+      if (screen.blocked) {
+        console.warn(
+          `[moderation] blocked post from user ${user_id} (matched filter)`,
+        );
+        return res.status(422).json({
+          success: false,
+          message:
+            "This post contains content that violates our Community Guidelines and cannot be published. Please review our Terms of Use.",
+        });
+      }
 
       // Parse offer data if it exists
       let offerData = null;
@@ -1508,20 +1529,36 @@ const postController = {
       const user_id = req.user?.id;
 
       if (!amount || amount <= 0) {
-        return res.status(400).json({ success: false, message: "Invalid tip amount" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid tip amount" });
       }
 
       // Check sender balance
-      const [[sender]] = await db.query("SELECT user_wallet_balance FROM users WHERE user_id = ?", [user_id]);
-      if (!sender || parseFloat(sender.user_wallet_balance) < parseFloat(amount)) {
-        return res.status(400).json({ success: false, message: "Insufficient wallet balance" });
+      const [[sender]] = await db.query(
+        "SELECT user_wallet_balance FROM users WHERE user_id = ?",
+        [user_id],
+      );
+      if (
+        !sender ||
+        parseFloat(sender.user_wallet_balance) < parseFloat(amount)
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Insufficient wallet balance" });
       }
 
       // Deduct from sender
-      await db.query("UPDATE users SET user_wallet_balance = user_wallet_balance - ? WHERE user_id = ?", [amount, user_id]);
+      await db.query(
+        "UPDATE users SET user_wallet_balance = user_wallet_balance - ? WHERE user_id = ?",
+        [amount, user_id],
+      );
 
       // Credit creator
-      await db.query("UPDATE users SET user_wallet_balance = user_wallet_balance + ? WHERE user_id = ?", [amount, creator_id || post_id]);
+      await db.query(
+        "UPDATE users SET user_wallet_balance = user_wallet_balance + ? WHERE user_id = ?",
+        [amount, creator_id || post_id],
+      );
 
       // Record transactions
       await db.query(
@@ -1529,10 +1566,18 @@ const postController = {
         [user_id, amount, post_id, `Tip for post #${post_id}`],
       );
 
-      res.json({ success: true, message: `Tip of ₦${amount} sent successfully!` });
+      res.json({
+        success: true,
+        message: `Tip of ₦${amount} sent successfully!`,
+      });
     } catch (error) {
       console.error("Send tip error:", error);
-      res.status(500).json({ success: false, message: error.message || "Failed to send tip" });
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: error.message || "Failed to send tip",
+        });
     }
   },
 
@@ -1714,14 +1759,16 @@ const postController = {
       // use the package's default boost count
       if (remainingPosts <= 0 && userBalance?.payment_id) {
         const pkgPostsEnabled =
-          userBalance.boost_posts_enabled === 1 || userBalance.boost_posts_enabled === '1';
+          userBalance.boost_posts_enabled === 1 ||
+          userBalance.boost_posts_enabled === "1";
         if (pkgPostsEnabled) {
           remainingPosts = Number(userBalance.boost_posts || 0);
         }
       }
       if (remainingPages <= 0 && userBalance?.payment_id) {
         const pkgPagesEnabled =
-          userBalance.boost_pages_enabled === 1 || userBalance.boost_pages_enabled === '1';
+          userBalance.boost_pages_enabled === 1 ||
+          userBalance.boost_pages_enabled === "1";
         if (pkgPagesEnabled) {
           remainingPages = Number(userBalance.boost_pages || 0);
         }
@@ -1957,44 +2004,28 @@ const postController = {
 
       const reportReason = reason || "User reported content";
 
-      // Store report in database (assuming you have a reports table)
-      const query = `
-        INSERT INTO post_reports (post_id, reported_by, reason, created_at)
-        VALUES (?, ?, ?, NOW())
-      `;
+      // This previously inserted into a `post_reports` table that does not
+      // exist in this schema, so every report failed with a SQL error while
+      // still returning a generic 500. The real table is `reports`, which is
+      // polymorphic over content type via node_id + node_type.
+      await db.query(
+        `INSERT INTO reports (user_id, node_id, node_type, category_id, reason, time)
+         VALUES (?, ?, 'post', ?, ?, NOW())`,
+        [userId, post_id, REPORT_CATEGORY_ID, reportReason],
+      );
 
-      await db.query(query, [post_id, userId, reportReason]);
-
-      // Send email to admin
-      const nodemailer = require("nodemailer");
-      const transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD,
-        },
-      });
-
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: "admin@pipiafrica.com",
-        subject: "Post Report",
+      // Notify the moderation inbox. Fire-and-forget: a mail failure must not
+      // fail the report itself, which is already durably stored above.
+      sendModerationEmail({
+        subject: `Post reported (#${post_id})`,
         html: `
           <h2>New Post Report</h2>
           <p><strong>Post ID:</strong> ${post_id}</p>
           <p><strong>Reported By:</strong> User ID ${userId}</p>
           <p><strong>Reason:</strong> ${reportReason}</p>
-          <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+          <p><strong>Date:</strong> ${new Date().toISOString()}</p>
+          <p>Review and action within 24 hours (App Store Guideline 1.2).</p>
         `,
-      };
-
-      // Send email asynchronously without blocking the response
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error("Error sending report email:", error);
-        } else {
-          console.log("Report email sent:", info.response);
-        }
       });
 
       res.status(200).json({

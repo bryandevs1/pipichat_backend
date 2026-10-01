@@ -359,6 +359,133 @@ async function sendNewSessionEmail(userEmail, userAgentInfo, ipAddress) {
   return await sendEmail(mailOptions);
 }
 
+// 4b. Membership Activated / Renewed Confirmation
+//
+// Sent after a successful subscription purchase (App Store / Play / wallet).
+// App Store Guideline 3.1.2(c) requires the app to make the subscription's
+// auto-renewal terms clear to the user, and repeating them in the confirmation
+// email is the conventional way to satisfy that.
+
+function escapeHtmlValue(text) {
+  if (text === null || text === undefined) return "";
+  const map = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  };
+  return text.toString().replaceAll(/[&<>"']/g, (m) => map[m]);
+}
+
+function formatExpiryLabel(expiresDate) {
+  if (!expiresDate) return null;
+  const date = new Date(expiresDate);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+const PERIOD_LABELS = {
+  day: "day",
+  week: "week",
+  month: "month",
+  year: "year",
+};
+
+function describePeriod(period, periodNum) {
+  const unit = PERIOD_LABELS[String(period || "").toLowerCase()] || "period";
+  const count = Number(periodNum) || 1;
+  return count === 1 ? `1 ${unit}` : `${count} ${unit}s`;
+}
+
+async function sendMembershipActivatedEmail({
+  email,
+  userName,
+  packageName,
+  priceLabel,
+  period,
+  periodNum,
+  expiresDate,
+  isRenewal = false,
+}) {
+  if (!email) {
+    console.error("sendMembershipActivatedEmail: email is required");
+    return false;
+  }
+
+  const safeName = escapeHtmlValue(userName || "there");
+  const safePlan = escapeHtmlValue(packageName || "Premium");
+  const safePrice = escapeHtmlValue(priceLabel || "");
+  const term = describePeriod(period, periodNum);
+  const expiryLabel = formatExpiryLabel(expiresDate);
+  const heading = isRenewal ? "Subscription Renewed" : "Welcome to Premium";
+
+  const mailOptions = {
+    from: getFromAddress(),
+    to: email,
+    subject: isRenewal
+      ? `✅ Your ${safePlan} subscription renewed`
+      : `🎉 Your ${safePlan} membership is active`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 12px; background: #f9f9f9;">
+        <h2 style="color: #e63946; text-align: center;">${heading}</h2>
+        <p>Hi ${safeName},</p>
+        <p>
+          ${
+            isRenewal
+              ? `Your <strong>${safePlan}</strong> membership has been renewed.`
+              : `Thank you for subscribing! Your <strong>${safePlan}</strong> membership is now active.`
+          }
+        </p>
+
+        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #e63946; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #333;">Subscription details:</h3>
+          <ul style="line-height: 1.8;">
+            <li><strong>Plan:</strong> ${safePlan}</li>
+            <li><strong>Length:</strong> ${term}, auto-renewing</li>
+            ${
+              safePrice
+                ? `<li><strong>Price:</strong> ${safePrice} per ${term}</li>`
+                : ""
+            }
+            ${
+              expiryLabel
+                ? `<li><strong>Renews on:</strong> ${expiryLabel}</li>`
+                : ""
+            }
+          </ul>
+        </div>
+
+        <p>
+          Your subscription renews automatically unless you cancel at least 24
+          hours before the end of the current period. You can manage or cancel
+          it any time in your App Store or Google Play account settings.
+        </p>
+
+        <p style="text-align: center; margin: 25px 0;">
+          <a href="https://pipiafrica.com/static/terms"
+             style="color: #e63946;">Terms of Use</a>
+          &nbsp;•&nbsp;
+          <a href="https://pipiafrica.com/static/privacy"
+             style="color: #e63946;">Privacy Policy</a>
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        <p style="color: #777; font-size: 12px; text-align: center;">
+          This is an automated message from PipiAfrica. If you did not make this
+          purchase, please contact support immediately.
+        </p>
+      </div>
+    `,
+  };
+
+  return await sendEmail(mailOptions);
+}
+
 // Export all functions
 module.exports = {
   sendEmail,
@@ -366,4 +493,5 @@ module.exports = {
   sendPasswordResetEmail,
   sendDataRequestEmails,
   sendNewSessionEmail,
+  sendMembershipActivatedEmail,
 };

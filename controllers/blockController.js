@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const { sendModerationEmail } = require("../services/moderationService");
 
 // Block a user
 exports.blockUser = async (req, res) => {
@@ -12,10 +13,32 @@ exports.blockUser = async (req, res) => {
   }
 
   try {
+    // Ignore duplicate blocks rather than erroring - a user may block the same
+    // account from more than one surface.
     await db.query(
-      "INSERT INTO users_blocks (user_id, blocked_id) VALUES (?, ?)",
-      [user_id, blocked_id]
+      `INSERT INTO users_blocks (user_id, blocked_id)
+       SELECT ?, ? FROM DUAL
+       WHERE NOT EXISTS (
+         SELECT 1 FROM users_blocks WHERE user_id = ? AND blocked_id = ?
+       )`,
+      [user_id, blocked_id, user_id, blocked_id],
     );
+
+    // App Store Guideline 1.2 requires that blocking a user also notifies the
+    // developer of the abusive account, so moderation can review and act.
+    // Fire-and-forget: the block is already persisted above.
+    sendModerationEmail({
+      subject: `User blocked (#${blocked_id} blocked by #${user_id})`,
+      html: `
+        <h2>User Blocked</h2>
+        <p><strong>Blocked by (user_id):</strong> ${user_id}</p>
+        <p><strong>Blocked user (user_id):</strong> ${blocked_id}</p>
+        <p><strong>Date:</strong> ${new Date().toISOString()}</p>
+        <p>A user considered this account abusive enough to block it. Review
+        their recent content and act within 24 hours (App Store Guideline 1.2).</p>
+      `,
+    });
+
     res.json({ success: true, message: "User blocked successfully" });
   } catch (error) {
     console.error("[ERROR] Failed to block user:", error);
@@ -30,7 +53,7 @@ exports.unblockUser = async (req, res) => {
   try {
     const [result] = await db.query(
       "DELETE FROM users_blocks WHERE user_id = ? AND blocked_id = ?",
-      [user_id, blocked_id]
+      [user_id, blocked_id],
     );
 
     if (result.affectedRows === 0) {
@@ -58,7 +81,7 @@ exports.getBlockedUsers = async (req, res) => {
       JOIN users u ON ub.blocked_id = u.user_id 
       WHERE ub.user_id = ?
     `,
-      [user_id]
+      [user_id],
     );
 
     res.json({ success: true, data: rows });

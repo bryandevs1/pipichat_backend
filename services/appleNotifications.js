@@ -60,7 +60,9 @@ const verifyAppleJws = (jws) => {
   const root = certs.at(-1);
   const rootFp = normalizeFingerprint(root.fingerprint256);
   if (!APPLE_ROOT_CA_SHA256.has(rootFp)) {
-    throw new Error(`certificate chain does not terminate at a known Apple root (${rootFp})`);
+    throw new Error(
+      `certificate chain does not terminate at a known Apple root (${rootFp})`,
+    );
   }
 
   // 3: verify the signature with the leaf certificate.

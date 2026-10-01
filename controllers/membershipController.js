@@ -8,6 +8,8 @@ const {
   GRANTING_TYPES,
   REVOKING_TYPES,
 } = require("../services/appleNotifications");
+const NotificationService = require("../services/notificationService");
+const { sendMembershipActivatedEmail } = require("../utils/email");
 
 const getExpiryDate = (paymentDate, period, periodNum) => {
   const baseDate = new Date(paymentDate);
@@ -40,6 +42,88 @@ const getExpiryDate = (paymentDate, period, periodNum) => {
   return expiry;
 };
 
+const PERIOD_UNITS = {
+  day: "day",
+  week: "week",
+  month: "month",
+  year: "year",
+};
+
+const describePeriodLabel = (period, periodNum) => {
+  const unit = PERIOD_UNITS[String(period || "").toLowerCase()] || "period";
+  const count = Number(periodNum) || 1;
+  return count === 1 ? `1 ${unit}` : `${count} ${unit}s`;
+};
+
+/**
+ * Notify a user that their membership is active: an in-app notification record,
+ * a push notification, and a confirmation email.
+ *
+ * Called AFTER the purchase transaction has committed and deliberately
+ * fire-and-forget - a mail or push outage must never roll back or fail a paid
+ * purchase. Every stage swallows its own errors for the same reason.
+ */
+const notifyMembershipActivated = async ({
+  userId,
+  pkg,
+  expiresDate = null,
+  isRenewal = false,
+  priceLabel = null,
+}) => {
+  const planName = pkg?.name || "Premium";
+  const term = describePeriodLabel(pkg?.period, pkg?.period_num);
+
+  // 1. In-app notification record + realtime / push delivery.
+  try {
+    await NotificationService.createNotification(
+      userId,
+      userId,
+      "membership_activated",
+      `Your ${planName} membership is active (${term}).`,
+      "membership",
+      pkg?.package_id ?? null,
+      "/membership",
+    );
+  } catch (error) {
+    console.error(
+      "[membership] in-app/push notification failed:",
+      error.message,
+    );
+  }
+
+  // 2. Email confirmation.
+  try {
+    const [[user]] = await db.query(
+      `SELECT user_email, user_name, user_firstname, user_lastname
+       FROM users WHERE user_id = ? LIMIT 1`,
+      [userId],
+    );
+
+    const userName =
+      [user?.user_firstname, user?.user_lastname].filter(Boolean).join(" ") ||
+      user?.user_name ||
+      null;
+
+    const fallbackPrice =
+      pkg?.price && Number(pkg.price) > 0
+        ? `₦${Number(pkg.price).toLocaleString("en-NG")}`
+        : null;
+
+    await sendMembershipActivatedEmail({
+      email: user?.user_email || null,
+      userName,
+      packageName: planName,
+      priceLabel: priceLabel || fallbackPrice,
+      period: pkg?.period,
+      periodNum: pkg?.period_num,
+      expiresDate,
+      isRenewal,
+    });
+  } catch (error) {
+    console.error("[membership] confirmation email failed:", error.message);
+  }
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // In-App Purchase (StoreKit / Google Play) verification
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,7 +144,9 @@ const httpPostJson = async (url, body) => {
 const verifyAppleReceipt = async (receipt) => {
   const secret = process.env.APPLE_SHARED_SECRET;
   if (!secret || !receipt) {
-    throw new Error("Apple IAP is not configured (missing APPLE_SHARED_SECRET)");
+    throw new Error(
+      "Apple IAP is not configured (missing APPLE_SHARED_SECRET)",
+    );
   }
 
   const payload = {
@@ -169,8 +255,7 @@ const appleTransactionFor = (result, productId) => {
   if (infos.length === 0) return null;
 
   // Newest first: expires_date_ms when present, otherwise purchase_date_ms.
-  const sortKey = (i) =>
-    Number(i.expires_date_ms || i.purchase_date_ms || 0);
+  const sortKey = (i) => Number(i.expires_date_ms || i.purchase_date_ms || 0);
   const newestFirst = [...infos].sort((a, b) => sortKey(b) - sortKey(a));
   return newestFirst[0];
 };
@@ -203,6 +288,7 @@ const grantPackageToUser = async (
     storeProductId = null,
     transactionId = null,
     originalTransactionId = null,
+    orderTransactionId = null,
     expiresDate = null,
   } = {},
 ) => {
@@ -214,18 +300,47 @@ const grantPackageToUser = async (
     ? Number(pkg.boost_pages || 0)
     : 0;
 
-  // Already recorded -> nothing to grant, but make sure boosts are intact.
-  if (transactionId) {
+  // Idempotency key.
+  //
+  // This MUST be the *order* / stable store identifier, not the per-renewal
+  // transaction id. Apple's receipt contains a `transaction_id` for EVERY
+  // period a subscription has ever been billed - including entries created by
+  // other accounts that used the same device/Apple ID. Keying the de-dupe on
+  // transaction_id therefore let a stale entry suppress the grant for a
+  // brand-new subscriber, which is exactly the "I paid and it said success but
+  // my plan is still empty" report. The order id (iOS
+  // original_transaction_id, Android purchase token) is unique per
+  // subscription, so it de-dupes replays without colliding across users.
+  const idempotencyKey = orderTransactionId || transactionId;
+
+  if (idempotencyKey) {
     const [[existing]] = await connection.query(
-      `SELECT payment_id FROM packages_payments
+      `SELECT payment_id, user_id FROM packages_payments
        WHERE transaction_id = ? LIMIT 1`,
-      [transactionId],
+      [idempotencyKey],
     );
     if (existing) {
-      return { alreadyGranted: true, paymentId: existing.payment_id };
+      // Only treat this as a replay for the SAME user. A store id that is
+      // already attached to a different account must not silently swallow a
+      // genuine purchase (shared device, restored backup, family account).
+      if (Number(existing.user_id) === Number(userId)) {
+        return { alreadyGranted: true, paymentId: existing.payment_id };
+      }
+      // Claim it for the user who actually bought it.
+      await connection.query(
+        `UPDATE packages_payments
+         SET user_id = ?, expires_date = ?, platform = ?
+         WHERE payment_id = ?`,
+        [userId, expiresDate, platform, existing.payment_id],
+      );
+      return { alreadyGranted: false, paymentId: existing.payment_id };
     }
   }
 
+  // Reset the boost allowance for the new period. Without this, a user whose
+  // previous plan is still in force keeps the OLD quota (e.g. from a
+  // higher-tier plan) instead of the quota of the plan they just bought,
+  // because the users table is only ever overwritten by a truthy value.
   await connection.query(
     `UPDATE users
      SET user_verified = '1',
@@ -247,18 +362,22 @@ const grantPackageToUser = async (
       userId,
       storeProductId,
       platform,
-      transactionId,
+      idempotencyKey,
       originalTransactionId,
       expiresDate,
     ],
   );
 
-  return { alreadyGranted: false, paymentId: insertResult.insertId };
+  return {
+    alreadyGranted: false,
+    paymentId: insertResult.insertId,
+    userId,
+  };
 };
 
 /**
  * Resolve the store-issued identifiers for an iOS purchase so the server can:
- *   - deduplicate repeated receipts (transactionId)
+ *   - deduplicate repeated receipts (the order id)
  *   - match future renewals to this user (originalTransactionId)
  *   - trust the store's expiry rather than guessing it
  */
@@ -307,6 +426,9 @@ const resolveAppleTransaction = async (productId, body) => {
     transactionId: tx.transaction_id || null,
     originalTransactionId:
       tx.original_transaction_id || tx.transaction_id || null,
+    // The order / stable subscription id used for idempotency.
+    orderTransactionId:
+      tx.original_transaction_id || tx.transaction_id || null,
     expiresDate: msToDate(expMs) || msToDate(tx.expires_date),
   };
 };
@@ -337,6 +459,7 @@ const resolveAndroidTransaction = async (body) => {
   return {
     transactionId: token,
     originalTransactionId: token,
+    orderTransactionId: token,
     expiresDate: sub.expiryTime ? new Date(sub.expiryTime) : null,
   };
 };
@@ -398,10 +521,23 @@ const verifyIapSubscription = async (req, res) => {
         storeProductId: productId,
         transactionId: store.transactionId,
         originalTransactionId: store.originalTransactionId,
+        orderTransactionId: store.orderTransactionId,
         expiresDate: store.expiresDate,
       },
     );
     await connection.commit();
+
+    // Post-commit side effects (email + push). Skipped for an idempotent
+    // replay (e.g. "Restore Purchases") so the user is not emailed twice for
+    // the same subscription.
+    if (!alreadyGranted) {
+      notifyMembershipActivated({
+        userId,
+        pkg,
+        expiresDate: store.expiresDate,
+        priceLabel: req.body?.priceLabel || null,
+      }).catch(() => {});
+    }
 
     return res.json({
       success: true,
@@ -553,6 +689,16 @@ const getUserPackage = async (req, res) => {
     const isActive = !Number.isNaN(expiryDate.getTime()) && expiryDate > now;
 
     if (!isActive) {
+      // The plan has lapsed. Zero the stored boost allowance as well, so an
+      // expired plan cannot keep reporting (and letting the app spend) boosts
+      // that were never consumed.
+      await db.query(
+        `UPDATE users
+         SET user_boosted_posts = 0, user_boosted_pages = 0
+         WHERE user_id = ?`,
+        [userId],
+      );
+
       return res.status(200).json({
         success: true,
         data: null,
@@ -685,6 +831,13 @@ const subscribeToPackage = async (req, res) => {
     );
 
     await connection.commit();
+
+    // Email + push after the wallet charge has committed.
+    notifyMembershipActivated({
+      userId,
+      pkg,
+      expiresDate: getExpiryDate(new Date(), pkg.period, pkg.period_num),
+    }).catch(() => {});
 
     return res.status(200).json({
       success: true,
@@ -947,8 +1100,14 @@ const applyGrantingNotification = async (connection, ctx) => {
       )
     : [[null]];
 
+  // Resolved once and reused for both the payment row and the buyer
+  // notification below (the plan name is what the user sees).
+  const renewalPkg = dupe
+    ? null
+    : await findPackageForProduct(connection, productId);
+
   if (!dupe) {
-    const pkg = await findPackageForProduct(connection, productId);
+    const pkg = renewalPkg;
     if (pkg) {
       await connection.query(
         `INSERT INTO packages_payments
@@ -973,6 +1132,17 @@ const applyGrantingNotification = async (connection, ctx) => {
     `UPDATE users SET user_verified = '1' WHERE user_id = ?`,
     [userId],
   );
+
+  // Renewals only fire this path once per billing period (Apple redelivers,
+  // but the transaction_id de-dupe above returns early for those).
+  if (!dupe) {
+    notifyMembershipActivated({
+      userId,
+      pkg: renewalPkg || { name: productId },
+      expiresDate: msToDate(expiresMs),
+      isRenewal: true,
+    }).catch(() => {});
+  }
 
   // Users may switch auto-renew off and keep access until the period ends.
   if (notification.renewalInfo?.autoRenewStatus === 0) {
@@ -1031,7 +1201,9 @@ const handleAppStoreNotification = async (req, res) => {
     notification = decodeNotification(signedPayload);
   } catch (error) {
     console.error("App Store notification verification failed:", error.message);
-    return res.status(401).json({ success: false, message: "Invalid signature" });
+    return res
+      .status(401)
+      .json({ success: false, message: "Invalid signature" });
   }
 
   const { notificationType, subtype, transaction } = notification;
